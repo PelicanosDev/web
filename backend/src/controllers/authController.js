@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const Member = require('../models/Member');
 const { sendTokenResponse, verifyRefreshToken, generateToken } = require('../utils/jwt');
+const { uploadImage } = require('../config/cloudinary');
 
 const register = async (req, res, next) => {
   try {
@@ -196,11 +197,47 @@ const changePassword = async (req, res, next) => {
   }
 };
 
+const uploadAvatar = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No image file provided'
+      });
+    }
+
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    const uploadResult = await uploadImage(req.file, 'avatars');
+
+    user.profile.avatar = uploadResult.url;
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Avatar uploaded successfully',
+      data: {
+        avatar: uploadResult.url
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   register,
   login,
   logout,
   refreshToken,
   getMe,
-  changePassword
+  changePassword,
+  uploadAvatar
 };
