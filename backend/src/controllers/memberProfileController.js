@@ -64,42 +64,40 @@ const getMyProgress = async (req, res, next) => {
       });
     }
 
-    const firstRecord = member.getFirstPhysicalRecord();
-    const latestRecord = member.getLatestPhysicalRecord();
-
-    if (!firstRecord || !latestRecord) {
+    if (!member.physicalRecords || member.physicalRecords.length === 0) {
       return res.status(200).json({
         success: true,
         data: {
+          records: [],
           message: 'No physical records available yet'
         }
       });
     }
 
-    const progress = {
-      verticalJump: {
-        start: firstRecord.verticalJump || 0,
-        current: latestRecord.verticalJump || 0,
-        improvement: latestRecord.verticalJump && firstRecord.verticalJump 
-          ? latestRecord.verticalJump - firstRecord.verticalJump 
-          : 0
-      },
-      serveSpeed: {
-        start: firstRecord.serveSpeed || 0,
-        current: latestRecord.serveSpeed || 0,
-        improvement: latestRecord.serveSpeed && firstRecord.serveSpeed 
-          ? latestRecord.serveSpeed - firstRecord.serveSpeed 
-          : 0
-      },
-      height: {
-        start: firstRecord.height || 0,
-        current: latestRecord.height || 0
-      },
-      wingspan: {
-        start: firstRecord.wingspan || 0,
-        current: latestRecord.wingspan || 0
+    // Agrupar récords por ejercicio
+    const recordsByExercise = {};
+    member.physicalRecords.forEach(record => {
+      if (!recordsByExercise[record.exercise]) {
+        recordsByExercise[record.exercise] = [];
       }
-    };
+      recordsByExercise[record.exercise].push(record);
+    });
+
+    // Calcular progreso para cada ejercicio
+    const progress = {};
+    Object.keys(recordsByExercise).forEach(exercise => {
+      const records = recordsByExercise[exercise].sort((a, b) => new Date(a.date) - new Date(b.date));
+      const firstRecord = records[0];
+      const latestRecord = records[records.length - 1];
+      
+      progress[exercise] = {
+        start: firstRecord.result,
+        current: latestRecord.result,
+        improvement: latestRecord.result - firstRecord.result,
+        unit: latestRecord.unit,
+        recordCount: records.length
+      };
+    });
 
     res.status(200).json({
       success: true,

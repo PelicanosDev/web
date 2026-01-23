@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react';
-import { User, Phone, Calendar, MapPin, AlertTriangle, Activity, Edit2, Save, X, Heart, Briefcase, GraduationCap, Instagram } from 'lucide-react';
+import { User, Phone, Calendar, MapPin, AlertTriangle, Activity, Edit2, Save, X, Heart, Briefcase, GraduationCap, Instagram, Lock } from 'lucide-react';
 import axios from '@/api/axios';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import RegistrationProgress from '@/components/profile/RegistrationProgress';
+import ChangePasswordModal from '@/components/profile/ChangePasswordModal';
 
 function MemberProfilePage() {
   const { user } = useAuth();
   const [member, setMember] = useState(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [formData, setFormData] = useState({
     // Datos personales
     phone: '',
@@ -134,19 +136,28 @@ function MemberProfilePage() {
 
       {/* Información del Usuario */}
       <div className="card">
-        <div className="flex items-center gap-4 mb-6">
-          <div className="w-20 h-20 bg-primary-100 rounded-full flex items-center justify-center">
-            <span className="text-3xl font-bold text-primary-500">
-              {member?.userId?.profile?.firstName?.[0]}{member?.userId?.profile?.lastName?.[0]}
-            </span>
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-4">
+            <div className="w-20 h-20 bg-primary-100 rounded-full flex items-center justify-center">
+              <span className="text-3xl font-bold text-primary-500">
+                {member?.userId?.profile?.firstName?.[0]}{member?.userId?.profile?.lastName?.[0]}
+              </span>
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">
+                {member?.userId?.profile?.firstName} {member?.userId?.profile?.lastName}
+              </h2>
+              <p className="text-gray-600">{member?.userId?.email}</p>
+              <p className="text-sm text-gray-500">Miembro #{member?.memberNumber}</p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-2xl font-bold text-gray-900">
-              {member?.userId?.profile?.firstName} {member?.userId?.profile?.lastName}
-            </h2>
-            <p className="text-gray-600">{member?.userId?.email}</p>
-            <p className="text-sm text-gray-500">Miembro #{member?.memberNumber}</p>
-          </div>
+          <button
+            onClick={() => setShowPasswordModal(true)}
+            className="btn btn-secondary btn-sm flex items-center gap-2"
+          >
+            <Lock className="w-4 h-4" />
+            Cambiar Contraseña
+          </button>
         </div>
 
         {editing ? (
@@ -568,6 +579,12 @@ function MemberProfilePage() {
           </div>
         )}
       </div>
+
+      {/* Modal de Cambio de Contraseña */}
+      <ChangePasswordModal 
+        isOpen={showPasswordModal} 
+        onClose={() => setShowPasswordModal(false)} 
+      />
     </div>
   );
 }

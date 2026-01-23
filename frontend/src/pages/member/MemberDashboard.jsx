@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { TrendingUp, Award, Calendar, Users } from 'lucide-react';
+import { TrendingUp, Award, Calendar, Users, Trophy } from 'lucide-react';
 import axios from '@/api/axios';
 
 function MemberDashboard() {
   const [profile, setProfile] = useState(null);
   const [stats, setStats] = useState(null);
   const [progress, setProgress] = useState(null);
+  const [events, setEvents] = useState([]);
+  const [tournaments, setTournaments] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -15,15 +17,19 @@ function MemberDashboard() {
 
   const fetchMemberData = async () => {
     try {
-      const [profileRes, statsRes, progressRes] = await Promise.all([
+      const [profileRes, statsRes, progressRes, eventsRes, tournamentsRes] = await Promise.all([
         axios.get('/member/profile'),
         axios.get('/member/stats'),
         axios.get('/member/progress'),
+        axios.get('/events').catch(() => ({ data: { data: [] } })),
+        axios.get('/tournaments').catch(() => ({ data: { data: [] } }))
       ]);
 
       setProfile(profileRes.data.data);
       setStats(statsRes.data.data);
       setProgress(progressRes.data.data);
+      setEvents(eventsRes.data.data || []);
+      setTournaments(tournamentsRes.data.data || []);
     } catch (error) {
       console.error('Error fetching member data:', error);
     } finally {
@@ -40,6 +46,9 @@ function MemberDashboard() {
   }
 
   const levelProgress = stats ? ((stats.xp % 500) / 500) * 100 : 0;
+  const progressEntries = progress ? Object.entries(progress) : [];
+  const upcomingEvents = events.filter(e => new Date(e.date) > new Date()).slice(0, 3);
+  const activeTournaments = tournaments.filter(t => t.status === 'active' || t.status === 'upcoming').slice(0, 2);
 
   return (
     <div className="space-y-6">
@@ -71,43 +80,33 @@ function MemberDashboard() {
         </div>
 
         <div className="lg:col-span-2 grid grid-cols-2 gap-4">
-          <div className="card">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                <TrendingUp className="w-5 h-5 text-blue-500" />
+          {progressEntries.length > 0 ? (
+            progressEntries.slice(0, 2).map(([exercise, data]) => (
+              <div key={exercise} className="card">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <TrendingUp className="w-5 h-5 text-blue-500" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">{exercise}</p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {data.current} {data.unit}
+                    </p>
+                    {data.improvement !== 0 && (
+                      <p className={`text-sm ${data.improvement > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {data.improvement > 0 ? '+' : ''}{data.improvement} {data.unit}
+                      </p>
+                    )}
+                  </div>
+                </div>
               </div>
-              <div>
-                <p className="text-sm text-gray-600">Salto Vertical</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {progress?.verticalJump?.current || 0} cm
-                </p>
-                {progress?.verticalJump?.improvement > 0 && (
-                  <p className="text-sm text-green-600">
-                    +{progress.verticalJump.improvement} cm
-                  </p>
-                )}
-              </div>
+            ))
+          ) : (
+            <div className="col-span-2 card text-center py-8">
+              <TrendingUp className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+              <p className="text-gray-500">No hay récords físicos registrados</p>
             </div>
-          </div>
-
-          <div className="card">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
-                <TrendingUp className="w-5 h-5 text-primary-500" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Serve Speed</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {progress?.serveSpeed?.current || 0} km/h
-                </p>
-                {progress?.serveSpeed?.improvement > 0 && (
-                  <p className="text-sm text-green-600">
-                    +{progress.serveSpeed.improvement} km/h
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
+          )}
 
           <div className="card">
             <div className="flex items-center gap-3 mb-2">
@@ -143,86 +142,85 @@ function MemberDashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="card">
-          <h2 className="text-xl font-display font-bold text-gray-900 mb-6">Season Evolution</h2>
-          <p className="text-sm text-gray-600 mb-4">Pre-Season vs Now</p>
+          <h2 className="text-xl font-display font-bold text-gray-900 mb-6">Evolución de Rendimiento</h2>
+          <p className="text-sm text-gray-600 mb-4">Inicio vs Ahora</p>
           
-          <div className="space-y-4">
-            <div>
-              <div className="flex justify-between text-sm mb-1">
-                <span className="text-gray-600">Vertical Jump</span>
-                <span className="font-semibold text-green-600">+7 cm</span>
-              </div>
-              <div className="flex gap-2">
-                <div className="flex-1 bg-gray-200 rounded-full h-2">
-                  <div className="bg-gray-400 rounded-full h-2" style={{ width: '70%' }}></div>
-                </div>
-                <div className="flex-1 bg-gray-200 rounded-full h-2">
-                  <div className="bg-primary-500 rounded-full h-2" style={{ width: '85%' }}></div>
-                </div>
-              </div>
-              <div className="flex justify-between text-xs text-gray-500 mt-1">
-                <span>START: 45cm</span>
-                <span>NOW: 52cm</span>
-              </div>
+          {progressEntries.length > 0 ? (
+            <div className="space-y-4">
+              {progressEntries.map(([exercise, data]) => {
+                const maxValue = Math.max(data.start, data.current);
+                const startPercent = (data.start / maxValue) * 100;
+                const currentPercent = (data.current / maxValue) * 100;
+                
+                return (
+                  <div key={exercise}>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="text-gray-600">{exercise}</span>
+                      <span className={`font-semibold ${data.improvement >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {data.improvement >= 0 ? '+' : ''}{data.improvement} {data.unit}
+                      </span>
+                    </div>
+                    <div className="flex gap-2">
+                      <div className="flex-1 bg-gray-200 rounded-full h-2">
+                        <div className="bg-gray-400 rounded-full h-2" style={{ width: `${startPercent}%` }}></div>
+                      </div>
+                      <div className="flex-1 bg-gray-200 rounded-full h-2">
+                        <div className="bg-primary-500 rounded-full h-2" style={{ width: `${currentPercent}%` }}></div>
+                      </div>
+                    </div>
+                    <div className="flex justify-between text-xs text-gray-500 mt-1">
+                      <span>INICIO: {data.start}{data.unit}</span>
+                      <span>AHORA: {data.current}{data.unit}</span>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-
-            <div>
-              <div className="flex justify-between text-sm mb-1">
-                <span className="text-gray-600">Serve Speed</span>
-                <span className="font-semibold text-green-600">+12 km/h</span>
-              </div>
-              <div className="flex gap-2">
-                <div className="flex-1 bg-gray-200 rounded-full h-2">
-                  <div className="bg-gray-400 rounded-full h-2" style={{ width: '60%' }}></div>
-                </div>
-                <div className="flex-1 bg-gray-200 rounded-full h-2">
-                  <div className="bg-primary-500 rounded-full h-2" style={{ width: '90%' }}></div>
-                </div>
-              </div>
-              <div className="flex justify-between text-xs text-gray-500 mt-1">
-                <span>START: 60</span>
-                <span>NOW: 72</span>
-              </div>
+          ) : (
+            <div className="text-center py-8">
+              <TrendingUp className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+              <p className="text-gray-500">No hay datos de evolución disponibles</p>
             </div>
-          </div>
+          )}
         </div>
 
         <div className="card">
-          <h2 className="text-xl font-display font-bold text-gray-900 mb-6">Recent Matches</h2>
+          <h2 className="text-xl font-display font-bold text-gray-900 mb-6">Próximos Eventos y Torneos</h2>
           
           <div className="space-y-3">
-            <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border-l-4 border-green-500">
-              <div>
-                <p className="font-semibold text-gray-900">OCT 24 - Regional Cup</p>
-                <p className="text-sm text-gray-600">vs. Aguilas Club</p>
+            {upcomingEvents.length > 0 && upcomingEvents.map((event) => (
+              <div key={event._id} className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border-l-4 border-blue-500">
+                <div className="flex items-center gap-3">
+                  <Calendar className="w-5 h-5 text-blue-500" />
+                  <div>
+                    <p className="font-semibold text-gray-900">{event.title}</p>
+                    <p className="text-sm text-gray-600">
+                      {new Date(event.date).toLocaleDateString('es-ES', { month: 'short', day: 'numeric' })}
+                    </p>
+                  </div>
+                </div>
               </div>
-              <div className="text-right">
-                <p className="text-2xl font-bold text-green-600">3 - 1</p>
-                <span className="text-xs font-semibold text-green-600">WIN</span>
+            ))}
+            
+            {activeTournaments.length > 0 && activeTournaments.map((tournament) => (
+              <div key={tournament._id} className="flex items-center justify-between p-3 bg-primary-50 rounded-lg border-l-4 border-primary-500">
+                <div className="flex items-center gap-3">
+                  <Trophy className="w-5 h-5 text-primary-500" />
+                  <div>
+                    <p className="font-semibold text-gray-900">{tournament.name}</p>
+                    <p className="text-sm text-gray-600">{tournament.category}</p>
+                  </div>
+                </div>
+                <span className="text-xs font-semibold text-primary-600 uppercase">{tournament.status}</span>
               </div>
-            </div>
-
-            <div className="flex items-center justify-between p-3 bg-red-50 rounded-lg border-l-4 border-red-500">
-              <div>
-                <p className="font-semibold text-gray-900">OCT 18 - Friendly</p>
-                <p className="text-sm text-gray-600">vs. Tiburones</p>
+            ))}
+            
+            {upcomingEvents.length === 0 && activeTournaments.length === 0 && (
+              <div className="text-center py-8">
+                <Calendar className="w-12 h-12 text-gray-300 mx-auto mb-2" />
+                <p className="text-gray-500">No hay eventos próximos</p>
               </div>
-              <div className="text-right">
-                <p className="text-2xl font-bold text-red-600">2 - 3</p>
-                <span className="text-xs font-semibold text-red-600">LOSS</span>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border-l-4 border-green-500">
-              <div>
-                <p className="font-semibold text-gray-900">OCT 12 - League Opener</p>
-                <p className="text-sm text-gray-600">vs. Rayos Club</p>
-              </div>
-              <div className="text-right">
-                <p className="text-2xl font-bold text-green-600">3 - 0</p>
-                <span className="text-xs font-semibold text-green-600">WIN</span>
-              </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
