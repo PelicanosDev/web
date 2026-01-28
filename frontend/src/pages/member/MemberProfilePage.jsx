@@ -4,6 +4,7 @@ import axios from '@/api/axios';
 import { useAuth } from '@/features/auth/context/AuthContext';
 import RegistrationProgress from '@/components/profile/RegistrationProgress';
 import ChangePasswordModal from '@/components/profile/ChangePasswordModal';
+import AvatarUpload from '@/components/profile/AvatarUpload';
 
 function MemberProfilePage() {
   const { user } = useAuth();
@@ -49,6 +50,19 @@ function MemberProfilePage() {
   useEffect(() => {
     fetchMemberData();
   }, []);
+
+  const handleAvatarUpdate = (newAvatarUrl) => {
+    setMember(prev => ({
+      ...prev,
+      userId: {
+        ...prev.userId,
+        profile: {
+          ...prev.userId.profile,
+          avatar: newAvatarUrl
+        }
+      }
+    }));
+  };
 
   const fetchMemberData = async () => {
     try {
@@ -138,11 +152,12 @@ function MemberProfilePage() {
       <div className="card">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-4">
-            <div className="w-20 h-20 bg-primary-100 rounded-full flex items-center justify-center">
-              <span className="text-3xl font-bold text-primary-500">
-                {member?.userId?.profile?.firstName?.[0]}{member?.userId?.profile?.lastName?.[0]}
-              </span>
-            </div>
+            <AvatarUpload 
+              currentAvatar={member?.userId?.profile?.avatar}
+              onAvatarUpdate={handleAvatarUpdate}
+              firstName={member?.userId?.profile?.firstName}
+              lastName={member?.userId?.profile?.lastName}
+            />
             <div>
               <h2 className="text-2xl font-bold text-gray-900">
                 {member?.userId?.profile?.firstName} {member?.userId?.profile?.lastName}

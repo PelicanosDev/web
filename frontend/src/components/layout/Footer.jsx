@@ -54,8 +54,8 @@ function Footer() {
               </li>
               <li className="flex items-center gap-2">
                 <Mail className="w-4 h-4 flex-shrink-0" />
-                <a href="mailto:hola@pelicanos.co" className="hover:text-primary-400">
-                  hola@pelicanos.co
+                <a href="mailto:pelicanosvoleyclub@gmail.com" className="hover:text-primary-400">
+                  pelicanosvoleyclub@gmail.com
                 </a>
               </li>
             </ul>
@@ -65,7 +65,7 @@ function Footer() {
             <h3 className="font-display font-bold text-white mb-4">Síguenos</h3>
             <div className="flex gap-4">
               <a
-                href="https://instagram.com"
+                href="www.instagram.com/pelicanosvoleyclub/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-primary-500 transition-colors"
@@ -73,7 +73,7 @@ function Footer() {
                 <Instagram className="w-5 h-5" />
               </a>
               <a
-                href="https://facebook.com"
+                href="https://web.facebook.com/Pelicanosvoleyclub/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-primary-500 transition-colors"

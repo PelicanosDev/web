@@ -45,38 +45,112 @@ function MemberDashboard() {
     );
   }
 
-  const levelProgress = stats ? ((stats.xp % 500) / 500) * 100 : 0;
+  const currentXP = stats?.xp || 0;
+  const currentLevel = stats?.level || 1;
+  const xpForNextLevel = currentLevel * 500;
+  const xpInCurrentLevel = currentXP % xpForNextLevel;
+  const levelProgress = (xpInCurrentLevel / xpForNextLevel) * 100;
+  const xpNeeded = xpForNextLevel - xpInCurrentLevel;
+  
   const progressEntries = progress ? Object.entries(progress) : [];
   const upcomingEvents = events.filter(e => new Date(e.date) > new Date()).slice(0, 3);
   const activeTournaments = tournaments.filter(t => t.status === 'active' || t.status === 'upcoming').slice(0, 2);
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="card bg-gradient-to-br from-primary-500 to-primary-600 text-white">
-          <div className="flex items-center justify-between mb-4">
+      {/* Sección de Nivel y Experiencia */}
+      <div className="card-glass p-8 bg-gradient-to-br from-primary-500 to-ocean-600 text-white relative overflow-hidden">
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-white rounded-full blur-3xl"></div>
+          <div className="absolute bottom-0 left-0 w-64 h-64 bg-white rounded-full blur-3xl"></div>
+        </div>
+        
+        <div className="relative z-10">
+          <div className="flex items-center justify-between mb-6">
             <div>
-              <p className="text-sm opacity-90">ESTADO ACTUAL</p>
-              <h2 className="text-3xl font-display font-bold mt-1">
-                Nivel {stats?.level || 1}: Estrella en Ascenso ⭐
+              <p className="text-sm opacity-90 font-semibold mb-2">🌟 TU PROGRESO</p>
+              <h2 className="text-5xl font-display font-black mb-2">
+                Nivel {currentLevel}
               </h2>
+              <p className="text-lg opacity-90">{currentXP.toLocaleString()} XP Total</p>
+            </div>
+            <div className="text-center">
+              <div className="w-24 h-24 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center border-4 border-white/30">
+                <Award className="w-12 h-12" />
+              </div>
+              <p className="text-xs mt-2 opacity-80">{stats?.badges?.length || 0} Insignias</p>
             </div>
           </div>
-          <div className="mb-2">
-            <div className="flex justify-between text-sm mb-1">
-              <span>1,250 XP para Nivel 6</span>
-              <span>75%</span>
+          
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="font-semibold">Progreso al Nivel {currentLevel + 1}</span>
+              <span className="font-bold">{Math.round(levelProgress)}%</span>
             </div>
-            <div className="w-full bg-white/20 rounded-full h-3">
+            <div className="w-full bg-white/20 rounded-full h-4 overflow-hidden">
               <div 
-                className="bg-white rounded-full h-3 transition-all duration-500"
+                className="bg-white rounded-full h-4 transition-all duration-500 shadow-lg"
                 style={{ width: `${levelProgress}%` }}
               ></div>
             </div>
+            <div className="flex justify-between text-xs opacity-90">
+              <span>{xpInCurrentLevel.toLocaleString()} / {xpForNextLevel.toLocaleString()} XP</span>
+              <span>Faltan {xpNeeded.toLocaleString()} XP</span>
+            </div>
           </div>
-          <Link to="/member/profile" className="text-sm hover:underline opacity-90">
-            Ver Historial de XP →
-          </Link>
+
+          <div className="mt-6 pt-6 border-t border-white/20">
+            <p className="text-sm opacity-90 mb-3">✨ Gana XP completando logros y obteniendo insignias</p>
+            <Link 
+              to="/member/profile" 
+              className="inline-flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg transition-colors font-semibold"
+            >
+              Ver Mi Perfil →
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        {/* Insignias Recientes */}
+        <div className="card">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-display font-bold text-gray-900">Insignias Recientes</h3>
+            <Link to="/member/profile" className="text-sm text-primary-600 hover:text-primary-700 font-medium">
+              Ver todas
+            </Link>
+          </div>
+          {stats?.badges && stats.badges.length > 0 ? (
+            <div className="flex flex-wrap gap-3">
+              {stats.badges.slice(0, 6).map((badge, index) => {
+                const badgeData = badge.badgeId || badge;
+                const rarityColors = {
+                  common: 'bg-gray-100',
+                  rare: 'bg-blue-100',
+                  epic: 'bg-purple-100',
+                  legendary: 'bg-yellow-100'
+                };
+                const bgColor = rarityColors[badgeData?.rarity] || 'bg-gray-100';
+                
+                return (
+                  <div 
+                    key={index}
+                    className={`w-14 h-14 ${bgColor} rounded-full flex items-center justify-center shadow-md hover:scale-110 transition-transform`}
+                    title={badgeData?.name || 'Badge'}
+                  >
+                    <span className="text-2xl">{badgeData?.icon || '🏆'}</span>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <Award className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+              <p className="text-gray-500 text-sm">Aún no tienes insignias</p>
+              <p className="text-gray-400 text-xs mt-1">Completa logros para ganar XP</p>
+            </div>
+          )}
         </div>
 
         <div className="lg:col-span-2 grid grid-cols-2 gap-4">

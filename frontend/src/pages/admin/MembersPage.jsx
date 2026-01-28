@@ -112,10 +112,18 @@ function MembersPage() {
                 <tr key={member._id} className="border-b border-gray-100 hover:bg-gray-50">
                   <td className="py-3 px-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center">
-                        <span className="font-semibold text-primary-500">
-                          {member.userId?.profile?.firstName?.[0]}{member.userId?.profile?.lastName?.[0]}
-                        </span>
+                      <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center overflow-hidden">
+                        {member.userId?.profile?.avatar ? (
+                          <img 
+                            src={member.userId.profile.avatar} 
+                            alt={`${member.userId.profile.firstName} ${member.userId.profile.lastName}`}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span className="font-semibold text-primary-500">
+                            {member.userId?.profile?.firstName?.[0]}{member.userId?.profile?.lastName?.[0]}
+                          </span>
+                        )}
                       </div>
                       <div>
                         <p className="font-medium text-gray-900">

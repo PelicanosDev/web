@@ -35,6 +35,12 @@ function HomePage() {
           }}
         ></div>
         
+        {/* Patrón decorativo */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-white rounded-full blur-3xl transform translate-x-1/2 -translate-y-1/2"></div>
+          <div className="absolute bottom-0 left-0 w-96 h-96 bg-white rounded-full blur-3xl transform -translate-x-1/2 translate-y-1/2"></div>
+        </div>
+        
         <div className="relative z-10 max-w-4xl mx-auto px-4 text-center text-white">
           <motion.h1
             initial={{ opacity: 0, y: 20 }} 
@@ -58,11 +64,11 @@ function HomePage() {
             transition={{ duration: 0.8, delay: 0.4 }}
             className="flex flex-col sm:flex-row gap-4 justify-center"
           >
-            <Link to="/contact" className="btn bg-white text-primary-500 hover:bg-gray-100">
+            <Link to="/contact" className="btn bg-white text-primary-500 hover:bg-gray-100 shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all">
               Únete Ahora
               <ArrowRight className="w-5 h-5" />
             </Link>
-            <Link to="/about" className="btn border-2 border-white text-white hover:bg-white/10">
+            <Link to="/about" className="glass border-2 border-white text-white hover:bg-white/20 px-6 py-3 rounded-lg font-semibold transition-all inline-flex items-center justify-center gap-2">
               Conoce Más Sobre Nosotros
             </Link>
           </motion.div>
@@ -90,15 +96,18 @@ function HomePage() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.5, delay: index * 0.1 }}
-                  className="card text-center hover:shadow-xl transition-shadow"
+                  className="group relative bg-white rounded-2xl shadow-lg hover:shadow-2xl p-8 text-center transition-all duration-300 hover:-translate-y-2 border border-gray-100 overflow-hidden"
                 >
-                  <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Icon className="w-8 h-8 text-primary-500" />
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary-50 to-ocean-50 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                  <div className="relative z-10">
+                    <div className="w-16 h-16 bg-gradient-to-br from-primary-500 to-ocean-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg group-hover:scale-110 transition-transform">
+                      <Icon className="w-8 h-8 text-white" />
+                    </div>
+                    <h3 className="text-2xl font-display font-bold text-gray-900 mb-2">
+                      {feature.title}
+                    </h3>
+                    <p className="text-gray-600">{feature.description}</p>
                   </div>
-                  <h3 className="text-2xl font-display font-bold text-gray-900 mb-2">
-                    {feature.title}
-                  </h3>
-                  <p className="text-gray-600">{feature.description}</p>
                 </motion.div>
               );
             })}
@@ -112,8 +121,12 @@ function HomePage() {
         </div>
       </section>
 
-      <section className="py-20 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section className="py-20 bg-gradient-to-br from-gray-50 to-gray-100 relative overflow-hidden">
+        <div className="absolute inset-0 opacity-5">
+          <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-primary-500 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-1/4 left-1/4 w-96 h-96 bg-ocean-500 rounded-full blur-3xl"></div>
+        </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
               <h2 className="text-4xl font-display font-bold text-gray-900 mb-6">
@@ -123,9 +136,9 @@ function HomePage() {
                 Césped profesional y iluminación. Área dedicada para entrenamientos y fitness. Área social. Relájate y conecta con el equipo.
               </p>
               <ul className="space-y-4 mb-8">
-                <li className="flex items-start gap-3">
-                  <div className="w-6 h-6 rounded-full bg-primary-500 flex items-center justify-center flex-shrink-0 mt-1">
-                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <li className="flex items-start gap-3 p-4 rounded-xl bg-white/50 backdrop-blur-sm border border-white/60 hover:bg-white/80 transition-all">
+                  <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary-500 to-ocean-500 flex items-center justify-center flex-shrink-0 shadow-lg">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
                   </div>
@@ -134,9 +147,9 @@ function HomePage() {
                     <p className="text-gray-600">Césped profesional y iluminación</p>
                   </div>
                 </li>
-                <li className="flex items-start gap-3">
-                  <div className="w-6 h-6 rounded-full bg-primary-500 flex items-center justify-center flex-shrink-0 mt-1">
-                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <li className="flex items-start gap-3 p-4 rounded-xl bg-white/50 backdrop-blur-sm border border-white/60 hover:bg-white/80 transition-all">
+                  <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary-500 to-ocean-500 flex items-center justify-center flex-shrink-0 shadow-lg">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
                   </div>
@@ -145,9 +158,9 @@ function HomePage() {
                     <p className="text-gray-600">Área dedicada para entrenamientos y fitness</p>
                   </div>
                 </li>
-                <li className="flex items-start gap-3">
-                  <div className="w-6 h-6 rounded-full bg-primary-500 flex items-center justify-center flex-shrink-0 mt-1">
-                    <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <li className="flex items-start gap-3 p-4 rounded-xl bg-white/50 backdrop-blur-sm border border-white/60 hover:bg-white/80 transition-all">
+                  <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-primary-500 to-ocean-500 flex items-center justify-center flex-shrink-0 shadow-lg">
+                    <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
                   </div>
@@ -163,7 +176,7 @@ function HomePage() {
             </div>
             <div className="relative h-[400px] rounded-2xl overflow-hidden shadow-2xl">
               <img
-                src="https://images.unsplash.com/photo-1612872087720-bb876e2e67d1?w=800"
+                src="https://www.lapatria.com/sites/default/files/noticia/2023-02/a.aaaaaa.jpg"
                 alt="Cancha de vóley playa"
                 className="w-full h-full object-cover"
               />
@@ -172,17 +185,24 @@ function HomePage() {
         </div>
       </section>
 
-      <section className="py-20 bg-gradient-to-br from-primary-500 to-ocean-500 text-white">
-        <div className="max-w-4xl mx-auto px-4 text-center">
-          <h2 className="text-4xl font-display font-bold mb-6">
-            ¿Listo para Comenzar tu Aventura en el Vóley?
-          </h2>
-          <p className="text-xl mb-8">
-            Únete a cientos de jugadores que han encontrado su pasión en Pelícanos.
-          </p>
-          <Link to="/contact" className="btn bg-white text-primary-500 hover:bg-gray-100 btn-lg">
-            Comienza Hoy
-          </Link>
+      <section className="py-20 bg-gradient-to-br from-primary-600 to-ocean-600 text-white relative overflow-hidden">
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-0 left-1/4 w-96 h-96 bg-white rounded-full blur-3xl"></div>
+          <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-white rounded-full blur-3xl"></div>
+        </div>
+        <div className="max-w-4xl mx-auto px-4 text-center relative z-10">
+          <div className="glass rounded-3xl p-12 border-2 border-white/30">
+            <h2 className="text-4xl md:text-5xl font-display font-bold mb-6">
+              ¿Listo para Comenzar tu Aventura en el Vóley?
+            </h2>
+            <p className="text-xl mb-8 text-white/90">
+              Únete a cientos de jugadores que han encontrado su pasión en Pelícanos.
+            </p>
+            <Link to="/contact" className="btn bg-white text-primary-600 hover:bg-gray-100 shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all text-lg px-8 py-4">
+              Comienza Hoy
+              <ArrowRight className="w-5 h-5" />
+            </Link>
+          </div>
         </div>
       </section>
     </div>

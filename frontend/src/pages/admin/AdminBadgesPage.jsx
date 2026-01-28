@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Award, Search } from 'lucide-react';
+import { Plus, Edit2, Trash2, Award, Search, Filter } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from '@/api/axios';
 
-function BadgesPage() {
+function AdminBadgesPage() {
   const [badges, setBadges] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -418,4 +418,4 @@ function BadgesPage() {
   );
 }
 
-export default BadgesPage;
+export default AdminBadgesPage;

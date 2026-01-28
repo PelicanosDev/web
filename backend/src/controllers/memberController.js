@@ -51,7 +51,8 @@ const getMemberById = async (req, res, next) => {
   try {
     const member = await Member.findById(req.params.id)
       .populate('userId', 'email profile')
-      .populate('physicalRecords.recordedBy', 'profile.firstName profile.lastName');
+      .populate('physicalRecords.recordedBy', 'profile.firstName profile.lastName')
+      .populate('gamification.badges.badgeId');
 
     if (!member) {
       return res.status(404).json({

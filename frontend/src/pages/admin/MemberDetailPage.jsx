@@ -9,6 +9,10 @@ function MemberDetailPage() {
   const [member, setMember] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showRecordModal, setShowRecordModal] = useState(false);
+  const [showBadgeModal, setShowBadgeModal] = useState(false);
+  const [showBadgeInfoModal, setShowBadgeInfoModal] = useState(false);
+  const [selectedBadge, setSelectedBadge] = useState(null);
+  const [availableBadges, setAvailableBadges] = useState([]);
   const [recordForm, setRecordForm] = useState({
     exercise: '',
     result: '',
@@ -20,6 +24,7 @@ function MemberDetailPage() {
 
   useEffect(() => {
     fetchMemberDetails();
+    fetchAvailableBadges();
   }, [id]);
 
   const fetchMemberDetails = async () => {
@@ -30,6 +35,27 @@ function MemberDetailPage() {
       console.error('Error fetching member details:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchAvailableBadges = async () => {
+    try {
+      const response = await axios.get('/badges');
+      setAvailableBadges(response.data.data);
+    } catch (error) {
+      console.error('Error fetching badges:', error);
+    }
+  };
+
+  const handleAssignBadge = async (badgeId) => {
+    try {
+      await axios.post(`/admin/members/${id}/badges`, { badgeId });
+      alert('Insignia asignada exitosamente');
+      setShowBadgeModal(false);
+      fetchMemberDetails();
+    } catch (error) {
+      console.error('Error assigning badge:', error);
+      alert('Error al asignar insignia: ' + (error.response?.data?.message || error.message));
     }
   };
 
@@ -90,10 +116,18 @@ function MemberDetailPage() {
         <div className="lg:col-span-1">
           <div className="card">
             <div className="text-center mb-6">
-              <div className="w-24 h-24 rounded-full bg-primary-100 flex items-center justify-center mx-auto mb-4">
-                <span className="text-3xl font-bold text-primary-500">
-                  {member.userId?.profile?.firstName?.[0]}{member.userId?.profile?.lastName?.[0]}
-                </span>
+              <div className="w-24 h-24 rounded-full bg-primary-100 flex items-center justify-center mx-auto mb-4 overflow-hidden">
+                {member.userId?.profile?.avatar ? (
+                  <img 
+                    src={member.userId.profile.avatar} 
+                    alt={`${member.userId.profile.firstName} ${member.userId.profile.lastName}`}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span className="text-3xl font-bold text-primary-500">
+                    {member.userId?.profile?.firstName?.[0]}{member.userId?.profile?.lastName?.[0]}
+                  </span>
+                )}
               </div>
               <h2 className="text-2xl font-display font-bold text-gray-900">
                 {member.userId?.profile?.firstName} {member.userId?.profile?.lastName}
@@ -147,7 +181,10 @@ function MemberDetailPage() {
           <div className="card">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-display font-bold text-gray-900">Gamification</h3>
-              <button className="btn btn-primary btn-sm">
+              <button 
+                onClick={() => setShowBadgeModal(true)}
+                className="btn btn-primary btn-sm"
+              >
                 <Award className="w-4 h-4" />
                 Assign Badge
               </button>
@@ -172,11 +209,30 @@ function MemberDetailPage() {
               <div>
                 <h4 className="font-semibold text-gray-900 mb-3">Earned Badges</h4>
                 <div className="flex flex-wrap gap-3">
-                  {member.gamification.badges.map((badge, index) => (
-                    <div key={index} className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center">
-                      <span className="text-2xl">🏆</span>
-                    </div>
-                  ))}
+                  {member.gamification.badges.map((badge, index) => {
+                    const badgeData = badge.badgeId || badge;
+                    const rarityColors = {
+                      common: 'bg-gray-100',
+                      rare: 'bg-blue-100',
+                      epic: 'bg-purple-100',
+                      legendary: 'bg-yellow-100'
+                    };
+                    const bgColor = rarityColors[badgeData?.rarity] || 'bg-gray-100';
+                    
+                    return (
+                      <div 
+                        key={index} 
+                        onClick={() => {
+                          setSelectedBadge(badgeData);
+                          setShowBadgeInfoModal(true);
+                        }}
+                        className={`w-16 h-16 ${bgColor} rounded-full flex items-center justify-center shadow-md hover:scale-110 transition-transform cursor-pointer`}
+                        title={badgeData?.name || 'Badge'}
+                      >
+                        <span className="text-2xl">{badgeData?.icon || '🏆'}</span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -358,6 +414,171 @@ function MemberDetailPage() {
                   </button>
                 </div>
               </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal de Asignar Badge */}
+      <AnimatePresence>
+        {showBadgeModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+            onClick={() => setShowBadgeModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto"
+            >
+              <div className="p-6 border-b sticky top-0 bg-white z-10">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-2xl font-display font-bold text-gray-900">
+                    Asignar Insignia
+                  </h2>
+                  <button
+                    onClick={() => setShowBadgeModal(false)}
+                    className="p-2 hover:bg-gray-100 rounded-lg"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {availableBadges.map((badge) => {
+                    const isAssigned = member?.gamification?.badges?.some(
+                      b => b.badgeId?._id === badge._id || b.badgeId === badge._id
+                    );
+                    
+                    const rarityColors = {
+                      common: 'bg-gray-100 text-gray-800 border-gray-300',
+                      rare: 'bg-blue-100 text-blue-800 border-blue-300',
+                      epic: 'bg-purple-100 text-purple-800 border-purple-300',
+                      legendary: 'bg-yellow-100 text-yellow-800 border-yellow-300'
+                    };
+
+                    return (
+                      <button
+                        key={badge._id}
+                        onClick={() => !isAssigned && handleAssignBadge(badge._id)}
+                        disabled={isAssigned}
+                        className={`text-left p-4 rounded-xl border-2 transition-all ${
+                          isAssigned 
+                            ? 'opacity-50 cursor-not-allowed bg-gray-50' 
+                            : `${rarityColors[badge.rarity]} hover:shadow-lg hover:-translate-y-1 cursor-pointer`
+                        }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="text-4xl">{badge.icon}</div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-bold mb-1 flex items-center gap-2">
+                              {badge.name}
+                              {isAssigned && (
+                                <span className="text-xs bg-green-500 text-white px-2 py-0.5 rounded-full">
+                                  Asignada
+                                </span>
+                              )}
+                            </h3>
+                            <p className="text-sm opacity-80 mb-2">{badge.description}</p>
+                            <div className="flex items-center justify-between text-xs">
+                              <span className="capitalize">{badge.category}</span>
+                              <span className="font-semibold">+{badge.xpReward} XP</span>
+                            </div>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {availableBadges.length === 0 && (
+                  <div className="text-center py-12">
+                    <Award className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                    <p className="text-gray-500">No hay insignias disponibles</p>
+                    <p className="text-sm text-gray-400 mt-2">Crea insignias desde la página de Badges</p>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal de Información del Badge */}
+      <AnimatePresence>
+        {showBadgeInfoModal && selectedBadge && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+            onClick={() => setShowBadgeInfoModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-2xl max-w-md w-full overflow-hidden shadow-2xl"
+            >
+              {/* Header con color según rareza */}
+              <div className={`p-6 text-center ${
+                selectedBadge.rarity === 'legendary' ? 'bg-gradient-to-br from-yellow-400 to-orange-500' :
+                selectedBadge.rarity === 'epic' ? 'bg-gradient-to-br from-purple-500 to-pink-500' :
+                selectedBadge.rarity === 'rare' ? 'bg-gradient-to-br from-blue-500 to-cyan-500' :
+                'bg-gradient-to-br from-gray-400 to-gray-500'
+              } text-white relative`}>
+                <button
+                  onClick={() => setShowBadgeInfoModal(false)}
+                  className="absolute top-4 right-4 p-1 hover:bg-white/20 rounded-lg transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+                <div className="text-7xl mb-4">{selectedBadge.icon}</div>
+                <h2 className="text-2xl font-display font-bold mb-2">{selectedBadge.name}</h2>
+                <span className="inline-block px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-sm font-semibold capitalize">
+                  {selectedBadge.rarity}
+                </span>
+              </div>
+
+              {/* Contenido */}
+              <div className="p-6 space-y-4">
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-500 uppercase mb-2">Descripción</h3>
+                  <p className="text-gray-700">{selectedBadge.description}</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <p className="text-xs text-gray-500 mb-1">Categoría</p>
+                    <p className="font-semibold text-gray-900 capitalize flex items-center gap-1">
+                      {selectedBadge.category === 'attendance' && '📅'}
+                      {selectedBadge.category === 'performance' && '⚡'}
+                      {selectedBadge.category === 'achievement' && '🏆'}
+                      {selectedBadge.category === 'special' && '⭐'}
+                      {selectedBadge.category}
+                    </p>
+                  </div>
+                  <div className="bg-primary-50 rounded-lg p-3">
+                    <p className="text-xs text-gray-500 mb-1">Recompensa</p>
+                    <p className="font-bold text-primary-600 text-lg">+{selectedBadge.xpReward} XP</p>
+                  </div>
+                </div>
+
+                {selectedBadge.criteria?.description && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <p className="text-xs text-blue-600 font-semibold mb-1">Criterio</p>
+                    <p className="text-sm text-blue-900">{selectedBadge.criteria.description}</p>
+                  </div>
+                )}
+              </div>
             </motion.div>
           </motion.div>
         )}

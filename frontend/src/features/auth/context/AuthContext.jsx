@@ -16,28 +16,32 @@ export const AuthProvider = ({ children }) => {
       const token = localStorage.getItem('token');
       const storedUser = localStorage.getItem('user');
       
-      if (token) {
-        // Intentar verificar con el servidor
+      if (token && storedUser) {
+        // Cargar usuario inmediatamente del localStorage para evitar parpadeo
+        setUser(JSON.parse(storedUser));
+        setLoading(false);
+        
+        // Verificar con el servidor en segundo plano
         try {
           const response = await axios.get('/auth/me');
           setUser(response.data.data);
-          // Actualizar usuario en localStorage
           localStorage.setItem('user', JSON.stringify(response.data.data));
         } catch (error) {
-          // Si falla la verificación pero hay usuario guardado, usarlo temporalmente
-          if (storedUser && error.response?.status !== 401) {
-            setUser(JSON.parse(storedUser));
-          } else {
-            // Token inválido, limpiar todo
+          // Si el token expiró, el interceptor intentará refrescarlo
+          if (error.response?.status === 401) {
             localStorage.removeItem('token');
             localStorage.removeItem('refreshToken');
             localStorage.removeItem('user');
             setUser(null);
           }
         }
-      } else if (storedUser) {
-        // No hay token pero hay usuario guardado, limpiar
+      } else {
+        // No hay token o usuario, limpiar todo
+        localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
         localStorage.removeItem('user');
+        setUser(null);
+        setLoading(false);
       }
     } catch (error) {
       console.error('Auth check error:', error);
@@ -45,7 +49,6 @@ export const AuthProvider = ({ children }) => {
       localStorage.removeItem('refreshToken');
       localStorage.removeItem('user');
       setUser(null);
-    } finally {
       setLoading(false);
     }
   };
@@ -58,13 +61,9 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('token', token);
     localStorage.setItem('refreshToken', refreshToken);
     localStorage.setItem('user', JSON.stringify(user));
-    localStorage.setItem('userId', user.id);
     
     // Actualizar estado
     setUser(user);
-    
-    // Configurar header de axios para futuras peticiones
-    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     
     return user;
   };
