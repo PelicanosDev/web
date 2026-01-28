@@ -8,7 +8,9 @@ const {
   updateMember,
   deleteMember,
   addPhysicalRecord,
-  assignBadge
+  assignBadge,
+  updateMemberUser,
+  permanentlyDeleteMember
 } = require('../controllers/memberController');
 
 router.use(authenticate);
@@ -23,6 +25,8 @@ router.route('/:id')
   .put(updateMember)
   .delete(deleteMember);
 
+router.put('/:id/user', updateMemberUser);
+router.delete('/:id/permanent', authorize('admin'), permanentlyDeleteMember);
 router.post('/:id/records', addPhysicalRecord);
 router.post('/:id/badges', assignBadge);
 

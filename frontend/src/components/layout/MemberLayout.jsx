@@ -1,6 +1,6 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/features/auth/context/AuthContext';
-import { Home, User, Calendar, Trophy, LogOut, Menu, X } from 'lucide-react';
+import { Home, User, Calendar, Trophy, LogOut, Menu, X, Image } from 'lucide-react';
 import { useState } from 'react';
 
 function MemberLayout() {
@@ -12,6 +12,7 @@ function MemberLayout() {
   const menuItems = [
     { name: 'Dashboard', path: '/member', icon: Home },
     { name: 'Mi Perfil', path: '/member/profile', icon: User },
+    { name: 'Mis Fotos', path: '/member/photos', icon: Image },
     { name: 'Torneos', path: '/member/tournaments', icon: Trophy },
     { name: 'Eventos', path: '/member/events', icon: Calendar },
   ];

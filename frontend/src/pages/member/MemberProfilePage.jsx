@@ -51,17 +51,25 @@ function MemberProfilePage() {
     fetchMemberData();
   }, []);
 
-  const handleAvatarUpdate = (newAvatarUrl) => {
-    setMember(prev => ({
-      ...prev,
-      userId: {
-        ...prev.userId,
-        profile: {
-          ...prev.userId.profile,
-          avatar: newAvatarUrl
-        }
-      }
-    }));
+  const handleAvatarUpdate = async (newAvatarUrl) => {
+    try {
+      await fetchMemberData();
+    } catch (error) {
+      console.error('Error refreshing member data:', error);
+      setMember(prev => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          userId: {
+            ...prev.userId,
+            profile: {
+              ...prev.userId.profile,
+              avatar: newAvatarUrl
+            }
+          }
+        };
+      });
+    }
   };
 
   const fetchMemberData = async () => {
@@ -118,7 +126,7 @@ function MemberProfilePage() {
     }
   };
 
-  if (loading) {
+  if (loading || !member) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500"></div>

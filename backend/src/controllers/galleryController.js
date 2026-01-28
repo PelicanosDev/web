@@ -13,6 +13,13 @@ const getAllGalleryItems = async (req, res, next) => {
     const items = await GalleryItem.find(query)
       .populate('uploadedBy', 'profile.firstName profile.lastName')
       .populate('eventId', 'title date')
+      .populate({
+        path: 'taggedMembers',
+        populate: {
+          path: 'userId',
+          select: 'profile.firstName profile.lastName profile.avatar'
+        }
+      })
       .sort({ createdAt: -1 })
       .limit(limit * 1)
       .skip((page - 1) * limit);
@@ -39,7 +46,14 @@ const getGalleryItemById = async (req, res, next) => {
     const item = await GalleryItem.findById(req.params.id)
       .populate('uploadedBy', 'profile')
       .populate('eventId', 'title date')
-      .populate('likes', 'profile.firstName profile.lastName');
+      .populate('likes', 'profile.firstName profile.lastName')
+      .populate({
+        path: 'taggedMembers',
+        populate: {
+          path: 'userId',
+          select: 'profile.firstName profile.lastName profile.avatar'
+        }
+      });
 
     if (!item) {
       return res.status(404).json({
@@ -181,11 +195,88 @@ const likeGalleryItem = async (req, res, next) => {
   }
 };
 
+const tagMembersInPhoto = async (req, res, next) => {
+  try {
+    const { memberIds } = req.body;
+    const item = await GalleryItem.findById(req.params.id);
+
+    if (!item) {
+      return res.status(404).json({
+        success: false,
+        message: 'Gallery item not found'
+      });
+    }
+
+    item.taggedMembers = memberIds || [];
+    await item.save();
+
+    const updatedItem = await GalleryItem.findById(req.params.id)
+      .populate({
+        path: 'taggedMembers',
+        populate: {
+          path: 'userId',
+          select: 'profile.firstName profile.lastName profile.avatar'
+        }
+      });
+
+    res.status(200).json({
+      success: true,
+      data: updatedItem
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getPhotosByTaggedMember = async (req, res, next) => {
+  try {
+    const { memberId } = req.params;
+    const { page = 1, limit = 12 } = req.query;
+
+    const items = await GalleryItem.find({ 
+      taggedMembers: memberId,
+      isPublic: true 
+    })
+      .populate('uploadedBy', 'profile.firstName profile.lastName')
+      .populate('eventId', 'title date')
+      .populate({
+        path: 'taggedMembers',
+        populate: {
+          path: 'userId',
+          select: 'profile.firstName profile.lastName profile.avatar'
+        }
+      })
+      .sort({ createdAt: -1 })
+      .limit(limit * 1)
+      .skip((page - 1) * limit);
+
+    const count = await GalleryItem.countDocuments({ 
+      taggedMembers: memberId,
+      isPublic: true 
+    });
+
+    res.status(200).json({
+      success: true,
+      data: items,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total: count,
+        pages: Math.ceil(count / limit)
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getAllGalleryItems,
   getGalleryItemById,
   createGalleryItem,
   updateGalleryItem,
   deleteGalleryItem,
-  likeGalleryItem
+  likeGalleryItem,
+  tagMembersInPhoto,
+  getPhotosByTaggedMember
 };

@@ -11,6 +11,7 @@ import VenuesPage from '@/pages/public/VenuesPage';
 import GalleryPage from '@/pages/public/GalleryPage';
 import ContactPage from '@/pages/public/ContactPage';
 import TournamentDetailPage from '@/pages/public/TournamentDetailPage';
+import MemberPublicProfilePage from '@/pages/public/MemberPublicProfilePage';
 import LoginPage from '@/pages/auth/LoginPage';
 
 import AdminDashboard from '@/pages/admin/AdminDashboard';
@@ -25,6 +26,7 @@ import BadgesPage from '@/pages/admin/BadgesPage';
 import MemberDashboard from '@/pages/member/MemberDashboard';
 import MemberProfilePage from '@/pages/member/MemberProfilePage';
 import MemberTournamentsPage from '@/pages/member/MemberTournamentsPage';
+import MemberPhotosPage from '@/pages/member/MemberPhotosPage';
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { user, loading } = useAuth();
@@ -58,6 +60,7 @@ function AppRouter() {
         <Route path="/gallery" element={<GalleryPage />} />
         <Route path="/contact" element={<ContactPage />} />
         <Route path="/tournaments/:id" element={<TournamentDetailPage />} />
+        <Route path="/members/:id" element={<MemberPublicProfilePage />} />
       </Route>
 
       <Route path="/login" element={<LoginPage />} />
@@ -91,6 +94,7 @@ function AppRouter() {
         <Route index element={<MemberDashboard />} />
         <Route path="profile" element={<MemberProfilePage />} />
         <Route path="tournaments" element={<MemberTournamentsPage />} />
+        <Route path="photos" element={<MemberPhotosPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

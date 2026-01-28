@@ -48,8 +48,8 @@ function Footer() {
               </li>
               <li className="flex items-center gap-2">
                 <Phone className="w-4 h-4 flex-shrink-0" />
-                <a href="tel:+573001234567" className="hover:text-primary-400">
-                  +57 300 123 4567
+                <a href="tel:+573113057249" className="hover:text-primary-400">
+                  +57 311 305 7249
                 </a>
               </li>
               <li className="flex items-center gap-2">
@@ -65,7 +65,7 @@ function Footer() {
             <h3 className="font-display font-bold text-white mb-4">Síguenos</h3>
             <div className="flex gap-4">
               <a
-                href="www.instagram.com/pelicanosvoleyclub/"
+                href="https://www.instagram.com/pelicanosvoleyclub"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-primary-500 transition-colors"

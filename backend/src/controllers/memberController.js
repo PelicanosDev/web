@@ -260,6 +260,75 @@ const addPhysicalRecord = async (req, res, next) => {
   }
 };
 
+const updateMemberUser = async (req, res, next) => {
+  try {
+    const member = await Member.findById(req.params.id).populate('userId');
+
+    if (!member) {
+      return res.status(404).json({
+        success: false,
+        message: 'Member not found'
+      });
+    }
+
+    const { email, firstName, lastName, phone, gender, dateOfBirth, idType, idNumber, address } = req.body;
+
+    if (email && email !== member.userId.email) {
+      const existingUser = await User.findOne({ email });
+      if (existingUser) {
+        return res.status(400).json({
+          success: false,
+          message: 'Email already in use'
+        });
+      }
+      member.userId.email = email;
+    }
+
+    if (firstName) member.userId.profile.firstName = firstName;
+    if (lastName) member.userId.profile.lastName = lastName;
+    if (phone) member.userId.profile.phone = phone;
+    if (gender) member.userId.profile.gender = gender;
+    if (dateOfBirth) member.userId.profile.dateOfBirth = dateOfBirth;
+    if (idType) member.userId.profile.idType = idType;
+    if (idNumber) member.userId.profile.idNumber = idNumber;
+    if (address) member.userId.profile.address = address;
+
+    await member.userId.save();
+
+    const updatedMember = await Member.findById(member._id).populate('userId', 'email profile');
+
+    res.status(200).json({
+      success: true,
+      data: updatedMember
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const permanentlyDeleteMember = async (req, res, next) => {
+  try {
+    const member = await Member.findById(req.params.id);
+
+    if (!member) {
+      return res.status(404).json({
+        success: false,
+        message: 'Member not found'
+      });
+    }
+
+    await User.findByIdAndDelete(member.userId);
+    await Member.findByIdAndDelete(req.params.id);
+
+    res.status(200).json({
+      success: true,
+      message: 'Member and user permanently deleted'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getAllMembers,
   getMemberById,
@@ -267,5 +336,7 @@ module.exports = {
   updateMember,
   deleteMember,
   addPhysicalRecord,
-  assignBadge
+  assignBadge,
+  updateMemberUser,
+  permanentlyDeleteMember
 };
