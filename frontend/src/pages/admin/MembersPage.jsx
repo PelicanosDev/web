@@ -9,6 +9,10 @@ function MembersPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalMembers, setTotalMembers] = useState(0);
+  const itemsPerPage = 15;
   const [showAddModal, setShowAddModal] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
@@ -20,15 +24,22 @@ function MembersPage() {
 
   useEffect(() => {
     fetchMembers();
-  }, [statusFilter]);
+  }, [statusFilter, currentPage, search]);
 
   const fetchMembers = async () => {
     try {
-      const params = {};
+      setLoading(true);
+      const params = { 
+        page: currentPage, 
+        limit: itemsPerPage 
+      };
       if (statusFilter !== 'all') params.status = statusFilter;
+      if (search.trim()) params.search = search.trim();
       
       const response = await axios.get('/admin/members', { params });
       setMembers(response.data.data);
+      setTotalPages(response.data.pagination.pages);
+      setTotalMembers(response.data.pagination.total);
     } catch (error) {
       console.error('Error fetching members:', error);
     } finally {
@@ -36,11 +47,17 @@ function MembersPage() {
     }
   };
 
-  const filteredMembers = members.filter(member => {
-    const searchLower = search.toLowerCase();
-    const fullName = `${member.userId?.profile?.firstName} ${member.userId?.profile?.lastName}`.toLowerCase();
-    return fullName.includes(searchLower) || member.userId?.email?.toLowerCase().includes(searchLower);
-  });
+  const handleSearchChange = (e) => {
+    setSearch(e.target.value);
+    setCurrentPage(1);
+  };
+
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setCurrentPage(newPage);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
 
   if (loading) {
     return (
@@ -72,9 +89,9 @@ function MembersPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
               type="text"
-              placeholder="Search members..."
+              placeholder="Buscar por nombre o email..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={handleSearchChange}
               className="input pl-10 w-full"
             />
           </div>
@@ -108,7 +125,7 @@ function MembersPage() {
               </tr>
             </thead>
             <tbody>
-              {filteredMembers.map((member) => (
+              {members.map((member) => (
                 <tr key={member._id} className="border-b border-gray-100 hover:bg-gray-50">
                   <td className="py-3 px-4">
                     <div className="flex items-center gap-3">
@@ -172,9 +189,64 @@ function MembersPage() {
           </table>
         </div>
 
-        {filteredMembers.length === 0 && (
+        {members.length === 0 && !loading && (
           <div className="text-center py-12">
-            <p className="text-gray-500">No members found</p>
+            <p className="text-gray-500">No se encontraron miembros</p>
+          </div>
+        )}
+
+        {/* Paginación */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between mt-6 pt-6 border-t">
+            <div className="text-sm text-gray-600">
+              Mostrando {members.length > 0 ? ((currentPage - 1) * itemsPerPage) + 1 : 0} - {Math.min(currentPage * itemsPerPage, totalMembers)} de {totalMembers} miembros
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="btn btn-secondary disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Anterior
+              </button>
+              <div className="flex gap-1">
+                {[...Array(totalPages)].map((_, index) => {
+                  const page = index + 1;
+                  if (
+                    page === 1 ||
+                    page === totalPages ||
+                    (page >= currentPage - 1 && page <= currentPage + 1)
+                  ) {
+                    return (
+                      <button
+                        key={page}
+                        onClick={() => handlePageChange(page)}
+                        className={`px-3 py-1 rounded-lg font-medium transition-colors ${
+                          currentPage === page
+                            ? 'bg-primary-500 text-white'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                      >
+                        {page}
+                      </button>
+                    );
+                  } else if (
+                    page === currentPage - 2 ||
+                    page === currentPage + 2
+                  ) {
+                    return <span key={page} className="px-2 text-gray-400">...</span>;
+                  }
+                  return null;
+                })}
+              </div>
+              <button
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="btn btn-secondary disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Siguiente
+              </button>
+            </div>
           </div>
         )}
       </div>
