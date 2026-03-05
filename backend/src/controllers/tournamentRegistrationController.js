@@ -333,7 +333,7 @@ function generateSingleEliminationBracket(participants) {
         },
         winner: null,
         status: round === 1 ? 'pending' : 'waiting',
-        nextMatchNumber: round < totalRounds ? matchNumber + matchesInRound - i - 1 : null
+        nextMatchNumber: round < totalRounds ? matchNumber + matchesInRound - i - 1 + Math.floor(i / 2) : null
       });
       
       // Placeholder para siguiente ronda
