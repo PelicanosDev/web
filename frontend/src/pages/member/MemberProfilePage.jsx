@@ -74,7 +74,7 @@ function MemberProfilePage() {
 
   const fetchMemberData = async () => {
     try {
-      const response = await axios.get('/members/me');
+      const response = await axios.get('/member/profile');
       setMember(response.data.data);
       
       const memberData = response.data.data;
@@ -114,7 +114,7 @@ function MemberProfilePage() {
     setSaving(true);
 
     try {
-      await axios.put('/members/me/profile', formData);
+      await axios.put('/member/profile', formData);
       alert('Perfil actualizado exitosamente');
       setEditing(false);
       fetchMemberData();
