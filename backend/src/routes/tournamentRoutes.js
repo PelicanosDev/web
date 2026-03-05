@@ -17,7 +17,8 @@ const {
   getTournamentParticipants,
   getTournamentBracket,
   generateBracket,
-  updateParticipantStatus
+  updateParticipantStatus,
+  advanceToEliminationBracket
 } = require('../controllers/tournamentRegistrationController');
 
 router.get('/', getAllTournaments);
@@ -29,6 +30,7 @@ router.get('/:tournamentId/bracket', getTournamentBracket);
 router.post('/:tournamentId/register', authenticate, registerForTournament);
 router.delete('/:tournamentId/register', authenticate, cancelRegistration);
 router.post('/:tournamentId/generate-bracket', authenticate, authorize('admin', 'coach'), generateBracket);
+router.post('/:tournamentId/advance-to-bracket', authenticate, authorize('admin', 'coach'), advanceToEliminationBracket);
 router.patch('/:tournamentId/participants/:participantId/status', authenticate, authorize('admin', 'coach'), updateParticipantStatus);
 
 // Ruta legacy de registro de equipos

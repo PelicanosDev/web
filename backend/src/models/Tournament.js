@@ -215,7 +215,43 @@ const tournamentSchema = new mongoose.Schema({
   requiresApproval: {
     type: Boolean,
     default: false
-  }
+  },
+
+  hasGroups: { type: Boolean, default: false },
+
+  groupConfig: {
+    numGroups: Number,
+    teamsToAdvancePerGroup: Number,
+    classificationMethod: { type: String, enum: ['points', 'coefficient'], default: 'points' },
+    pointsConfig: {
+      win2_0:  { type: Number, default: 3 },
+      win2_1:  { type: Number, default: 2 },
+      lose2_1: { type: Number, default: 1 },
+      lose2_0: { type: Number, default: 0 }
+    },
+    coefficientType: { type: String, enum: ['sets', 'points'], default: 'sets' }
+  },
+
+  groups: [{
+    name: String,
+    participants: [{
+      participantId: mongoose.Schema.Types.ObjectId,
+      teamName: String,
+      played:        { type: Number, default: 0 },
+      wins:          { type: Number, default: 0 },
+      losses:        { type: Number, default: 0 },
+      points:        { type: Number, default: 0 },
+      setsFor:       { type: Number, default: 0 },
+      setsAgainst:   { type: Number, default: 0 },
+      pointsFor:     { type: Number, default: 0 },
+      pointsAgainst: { type: Number, default: 0 },
+      coefficient:   { type: Number, default: 0 },
+      rank:          Number
+    }],
+    complete: { type: Boolean, default: false }
+  }],
+
+  groupPhaseComplete: { type: Boolean, default: false }
 }, {
   timestamps: true
 });

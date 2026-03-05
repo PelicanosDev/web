@@ -32,6 +32,16 @@ function AdminTournamentsPage() {
     hasTimeLimit: false,
     timeLimitMinutes: 0,
     rules: '',
+    // Fase de grupos
+    hasGroups: false,
+    numGroups: 2,
+    teamsToAdvancePerGroup: 2,
+    groupClassMethod: 'points',
+    groupPoints_win2_0: 3,
+    groupPoints_win2_1: 2,
+    groupPoints_lose2_1: 1,
+    groupPoints_lose2_0: 0,
+    groupCoefType: 'sets',
   });
 
   useEffect(() => {
@@ -80,6 +90,21 @@ function AdminTournamentsPage() {
         },
         rules: formData.rules,
         status: 'registration',
+        hasGroups: formData.hasGroups,
+        ...(formData.hasGroups && {
+          groupConfig: {
+            numGroups: parseInt(formData.numGroups),
+            teamsToAdvancePerGroup: parseInt(formData.teamsToAdvancePerGroup),
+            classificationMethod: formData.groupClassMethod,
+            pointsConfig: {
+              win2_0:  parseInt(formData.groupPoints_win2_0),
+              win2_1:  parseInt(formData.groupPoints_win2_1),
+              lose2_1: parseInt(formData.groupPoints_lose2_1),
+              lose2_0: parseInt(formData.groupPoints_lose2_0),
+            },
+            coefficientType: formData.groupCoefType,
+          }
+        }),
       };
 
       if (editingTournament) {
@@ -130,6 +155,15 @@ function AdminTournamentsPage() {
       hasTimeLimit: tournament.matchConfig?.hasTimeLimit || false,
       timeLimitMinutes: tournament.matchConfig?.timeLimitMinutes || 0,
       rules: tournament.rules || '',
+      hasGroups: tournament.hasGroups || false,
+      numGroups: tournament.groupConfig?.numGroups || 2,
+      teamsToAdvancePerGroup: tournament.groupConfig?.teamsToAdvancePerGroup || 2,
+      groupClassMethod: tournament.groupConfig?.classificationMethod || 'points',
+      groupPoints_win2_0: tournament.groupConfig?.pointsConfig?.win2_0 ?? 3,
+      groupPoints_win2_1: tournament.groupConfig?.pointsConfig?.win2_1 ?? 2,
+      groupPoints_lose2_1: tournament.groupConfig?.pointsConfig?.lose2_1 ?? 1,
+      groupPoints_lose2_0: tournament.groupConfig?.pointsConfig?.lose2_0 ?? 0,
+      groupCoefType: tournament.groupConfig?.coefficientType || 'sets',
     });
     setShowModal(true);
   };
@@ -158,6 +192,15 @@ function AdminTournamentsPage() {
       hasTimeLimit: false,
       timeLimitMinutes: 0,
       rules: '',
+      hasGroups: false,
+      numGroups: 2,
+      teamsToAdvancePerGroup: 2,
+      groupClassMethod: 'points',
+      groupPoints_win2_0: 3,
+      groupPoints_win2_1: 2,
+      groupPoints_lose2_1: 1,
+      groupPoints_lose2_0: 0,
+      groupCoefType: 'sets',
     });
   };
 
@@ -455,6 +498,114 @@ function AdminTournamentsPage() {
                       <option value="double-elimination">Eliminación Doble</option>
                     </select>
                   </div>
+                </div>
+
+                {/* Fase de Grupos */}
+                <div className="border-t pt-6">
+                  <h3 className="text-lg font-display font-bold text-gray-900 mb-4">Fase de Grupos</h3>
+                  <div className="flex items-center gap-3 mb-4">
+                    <input
+                      type="checkbox"
+                      id="hasGroups"
+                      name="hasGroups"
+                      checked={formData.hasGroups}
+                      onChange={handleChange}
+                      className="w-4 h-4 text-primary-500 rounded focus:ring-2 focus:ring-primary-200"
+                    />
+                    <label htmlFor="hasGroups" className="text-sm font-medium text-gray-700">
+                      Incluir fase de grupos antes de las llaves
+                    </label>
+                  </div>
+
+                  {formData.hasGroups && (
+                    <div className="space-y-4 pl-4 border-l-2 border-primary-200">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="label">Número de grupos</label>
+                          <input
+                            type="number"
+                            name="numGroups"
+                            value={formData.numGroups}
+                            onChange={handleChange}
+                            min="2"
+                            max="8"
+                            className="input"
+                          />
+                        </div>
+                        <div>
+                          <label className="label">Equipos que clasifican por grupo</label>
+                          <input
+                            type="number"
+                            name="teamsToAdvancePerGroup"
+                            value={formData.teamsToAdvancePerGroup}
+                            onChange={handleChange}
+                            min="1"
+                            max="8"
+                            className="input"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="label">Método de clasificación</label>
+                        <div className="flex gap-4">
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="radio"
+                              name="groupClassMethod"
+                              value="points"
+                              checked={formData.groupClassMethod === 'points'}
+                              onChange={handleChange}
+                              className="w-4 h-4 text-primary-500"
+                            />
+                            <span className="text-sm font-medium text-gray-700">Por Puntos</span>
+                          </label>
+                          <label className="flex items-center gap-2 cursor-pointer">
+                            <input
+                              type="radio"
+                              name="groupClassMethod"
+                              value="coefficient"
+                              checked={formData.groupClassMethod === 'coefficient'}
+                              onChange={handleChange}
+                              className="w-4 h-4 text-primary-500"
+                            />
+                            <span className="text-sm font-medium text-gray-700">Por Coeficiente</span>
+                          </label>
+                        </div>
+                      </div>
+
+                      {formData.groupClassMethod === 'points' && (
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                          <div>
+                            <label className="label text-xs">Victoria 2-0 (pts)</label>
+                            <input type="number" name="groupPoints_win2_0" value={formData.groupPoints_win2_0} onChange={handleChange} min="0" className="input" />
+                          </div>
+                          <div>
+                            <label className="label text-xs">Victoria 2-1 (pts)</label>
+                            <input type="number" name="groupPoints_win2_1" value={formData.groupPoints_win2_1} onChange={handleChange} min="0" className="input" />
+                          </div>
+                          <div>
+                            <label className="label text-xs">Derrota 2-1 (pts)</label>
+                            <input type="number" name="groupPoints_lose2_1" value={formData.groupPoints_lose2_1} onChange={handleChange} min="0" className="input" />
+                          </div>
+                          <div>
+                            <label className="label text-xs">Derrota 0-2 (pts)</label>
+                            <input type="number" name="groupPoints_lose2_0" value={formData.groupPoints_lose2_0} onChange={handleChange} min="0" className="input" />
+                          </div>
+                        </div>
+                      )}
+
+                      {formData.groupClassMethod === 'coefficient' && (
+                        <div>
+                          <label className="label">Tipo de coeficiente</label>
+                          <select name="groupCoefType" value={formData.groupCoefType} onChange={handleChange} className="input">
+                            <option value="sets">Sets (SF/SA)</option>
+                            <option value="points">Puntos (PF/PA)</option>
+                          </select>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div className="border-t pt-6">

@@ -229,8 +229,29 @@ exports.generateBracket = async (req, res) => {
     );
 
     if (confirmedParticipants.length < 2) {
-      return res.status(400).json({ 
-        message: 'Need at least 2 confirmed participants to generate bracket' 
+      return res.status(400).json({
+        message: 'Need at least 2 confirmed participants to generate bracket'
+      });
+    }
+
+    // Si tiene fase de grupos y aún no está completa, generar grupos
+    if (tournament.hasGroups && !tournament.groupPhaseComplete) {
+      if (!tournament.groupConfig || !tournament.groupConfig.numGroups) {
+        return res.status(400).json({ message: 'Group configuration is missing' });
+      }
+      const result = generateGroupStage(confirmedParticipants, tournament.groupConfig);
+      tournament.groups = result.groups;
+      tournament.matches = result.matches;
+      tournament.status = 'in-progress';
+      await tournament.save();
+
+      return res.json({
+        success: true,
+        message: 'Group stage generated successfully',
+        data: {
+          groups: tournament.groups,
+          matches: tournament.matches
+        }
       });
     }
 
@@ -267,18 +288,240 @@ exports.generateBracket = async (req, res) => {
     });
   } catch (error) {
     console.error('Error generating bracket:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       message: 'Error generating bracket',
-      error: error.message 
+      error: error.message
     });
   }
 };
 
+// Admin: Avanzar de fase de grupos a llaves de eliminación
+exports.advanceToEliminationBracket = async (req, res) => {
+  try {
+    const { tournamentId } = req.params;
+
+    const tournament = await Tournament.findById(tournamentId);
+    if (!tournament) {
+      return res.status(404).json({ message: 'Tournament not found' });
+    }
+
+    if (!tournament.groupPhaseComplete) {
+      return res.status(400).json({ message: 'Group phase is not complete yet' });
+    }
+
+    if (tournament.bracket) {
+      return res.status(400).json({ message: 'Elimination bracket already generated' });
+    }
+
+    const cfg = tournament.groupConfig;
+    const method = cfg.classificationMethod || 'points';
+
+    // Determinar cuántos clasifican en total (potencia de 2 más cercana)
+    const numDirect = tournament.groups.length * cfg.teamsToAdvancePerGroup;
+    const nextPow2 = Math.pow(2, Math.ceil(Math.log2(Math.max(numDirect, 2))));
+    const extraNeeded = nextPow2 - numDirect;
+
+    const sortFn = (a, b) => {
+      if (method === 'points') {
+        if (b.points !== a.points) return b.points - a.points;
+        return b.coefficient - a.coefficient;
+      }
+      if (b.coefficient !== a.coefficient) return b.coefficient - a.coefficient;
+      return b.points - a.points;
+    };
+
+    // Ranking por tiers: primero todos los 1°, luego todos los 2°, etc.
+    // Dentro de cada tier se ordena por el método de clasificación
+    const allQualifiers = [];
+    for (let tier = 1; tier <= cfg.teamsToAdvancePerGroup; tier++) {
+      const tierTeams = [];
+      for (const group of tournament.groups) {
+        const sorted = rankParticipants(group.participants, method, group.name, tournament);
+        if (sorted.length >= tier) {
+          tierTeams.push({
+            ...sorted[tier - 1].toObject ? sorted[tier - 1].toObject() : sorted[tier - 1],
+            groupRank: tier,
+            groupName: group.name
+          });
+        }
+      }
+      tierTeams.sort(sortFn);
+      allQualifiers.push(...tierTeams);
+    }
+
+    // Mejores terceros si hacen falta
+    if (extraNeeded > 0) {
+      const thirdsRank = cfg.teamsToAdvancePerGroup + 1;
+      const thirds = [];
+      for (const group of tournament.groups) {
+        const sorted = rankParticipants(group.participants, method, group.name, tournament);
+        if (sorted.length >= thirdsRank) {
+          thirds.push({
+            ...sorted[thirdsRank - 1].toObject ? sorted[thirdsRank - 1].toObject() : sorted[thirdsRank - 1],
+            groupRank: thirdsRank,
+            groupName: group.name
+          });
+        }
+      }
+      thirds.sort(sortFn);
+      allQualifiers.push(...thirds.slice(0, extraNeeded));
+    }
+
+    // Seeding en bracket: lado A (1,3,5...) vs lado B (2,4,6...)
+    const seeded = bracketSeed(allQualifiers);
+
+    // Construir participantes con la forma que espera generateSingleEliminationBracket
+    const bracketParticipants = seeded.map(q => ({
+      _id: q.participantId,
+      teamName: q.teamName
+    }));
+
+    // Offset para que los matchNumbers de las llaves no colisionen con los de grupos
+    const matchOffset = tournament.matches.length;
+    const result = generateSingleEliminationBracket(bracketParticipants, matchOffset);
+
+    // Mantener los partidos de grupo y agregar los de eliminación
+    tournament.matches.push(...result.matches);
+    tournament.bracket = result.bracket;
+    await tournament.save();
+
+    res.json({
+      success: true,
+      message: `Elimination bracket generated with ${bracketParticipants.length} teams`,
+      data: {
+        bracket: tournament.bracket,
+        matches: tournament.matches,
+        qualifiers: allQualifiers.map((q, i) => ({ seed: i + 1, teamName: q.teamName, groupName: q.groupName, groupRank: q.groupRank }))
+      }
+    });
+  } catch (error) {
+    console.error('Error advancing to elimination bracket:', error);
+    res.status(500).json({
+      message: 'Error advancing to elimination bracket',
+      error: error.message
+    });
+  }
+};
+
+// Función auxiliar para generar fase de grupos (round-robin dentro de cada grupo)
+function generateGroupStage(participants, groupConfig) {
+  const numGroups = groupConfig.numGroups;
+  // Distribución balanceada: algunos grupos tienen base+1, el resto base
+  const base = Math.floor(participants.length / numGroups);
+  const remainder = participants.length % numGroups;
+  const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+  const groups = [];
+  const matches = [];
+  let matchNumber = 1;
+  let offset = 0;
+
+  for (let g = 0; g < numGroups; g++) {
+    const groupSize = g < remainder ? base + 1 : base;
+    const slice = participants.slice(offset, offset + groupSize);
+    offset += groupSize;
+    if (slice.length === 0) continue;
+    const groupName = `Grupo ${letters[g] || g}`;
+
+    const groupParticipants = slice.map(p => ({
+      participantId: p._id,
+      teamName: p.teamName,
+      played: 0,
+      wins: 0,
+      losses: 0,
+      points: 0,
+      setsFor: 0,
+      setsAgainst: 0,
+      pointsFor: 0,
+      pointsAgainst: 0,
+      coefficient: 0
+    }));
+
+    // Round-robin dentro del grupo
+    for (let i = 0; i < slice.length; i++) {
+      for (let j = i + 1; j < slice.length; j++) {
+        matches.push({
+          round: groupName,
+          roundNumber: g + 1,
+          matchNumber: matchNumber++,
+          team1: {
+            participantId: slice[i]._id,
+            teamName: slice[i].teamName,
+            score: []
+          },
+          team2: {
+            participantId: slice[j]._id,
+            teamName: slice[j].teamName,
+            score: []
+          },
+          winner: null,
+          status: 'pending',
+          nextMatchNumber: null
+        });
+      }
+    }
+
+    groups.push({ name: groupName, participants: groupParticipants, complete: false });
+  }
+
+  return { groups, matches };
+}
+
+// Bracket seeding estándar (pliegue recursivo)
+// 8 equipos → Lado A: (1vs8)(4vs5) | Lado B: (2vs7)(3vs6)
+// 16 equipos → Lado A: (1vs16)(8vs9)(4vs13)(5vs12) | Lado B: (2vs15)(7vs10)(3vs14)(6vs11)
+// Garantiza: 1 y 2 solo se cruzan en la final
+function bracketSeed(sorted) {
+  const n = sorted.length;
+
+  // Genera los índices en el orden de pliegue recursivo
+  function buildPositions(size) {
+    if (size === 2) return [0, 1];
+    const prev = buildPositions(size / 2);
+    const result = [];
+    for (const pos of prev) {
+      result.push(pos);
+      result.push(size - 1 - pos); // complementario
+    }
+    return result;
+  }
+
+  return buildPositions(n).map(i => sorted[i]);
+}
+
+// Función auxiliar para ordenar participantes de un grupo con tiebreakers
+function rankParticipants(participants, method, groupName, tournament) {
+  const sorted = [...participants].sort((a, b) => {
+    const primaryA = method === 'points' ? a.points : a.coefficient;
+    const primaryB = method === 'points' ? b.points : b.coefficient;
+    if (primaryB !== primaryA) return primaryB - primaryA;
+
+    const secondaryA = method === 'points' ? a.coefficient : a.points;
+    const secondaryB = method === 'points' ? b.coefficient : b.points;
+    if (secondaryB !== secondaryA) return secondaryB - secondaryA;
+
+    // Desempate por enfrentamiento directo
+    const headToHead = tournament.matches.find(m =>
+      m.round === groupName &&
+      m.status === 'completed' &&
+      ((m.team1.participantId?.toString() === a.participantId?.toString() &&
+        m.team2.participantId?.toString() === b.participantId?.toString()) ||
+       (m.team1.participantId?.toString() === b.participantId?.toString() &&
+        m.team2.participantId?.toString() === a.participantId?.toString()))
+    );
+    if (headToHead) {
+      const aWon = headToHead.winner?.toString() === a.participantId?.toString();
+      return aWon ? -1 : 1;
+    }
+    return 0;
+  });
+  return sorted;
+}
+
 // Función auxiliar para generar bracket de eliminación simple completo
-function generateSingleEliminationBracket(participants) {
+function generateSingleEliminationBracket(participants, matchNumberOffset = 0) {
   const numParticipants = participants.length;
   const totalRounds = Math.ceil(Math.log2(numParticipants));
-  
+
   const bracket = {
     type: 'single-elimination',
     rounds: totalRounds,
@@ -290,7 +533,7 @@ function generateSingleEliminationBracket(participants) {
   };
 
   const matches = [];
-  let matchNumber = 1;
+  let matchNumber = matchNumberOffset + 1;
   
   // Nombres de rondas según número de equipos
   const getRoundName = (roundNum, totalRounds) => {

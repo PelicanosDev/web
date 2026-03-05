@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { 
-  ArrowLeft, 
-  Users, 
-  Trophy, 
+import {
+  ArrowLeft,
+  Users,
+  Trophy,
   Calendar,
   MapPin,
   Play,
@@ -12,7 +12,9 @@ import {
   XCircle,
   Edit,
   Trash2,
-  RefreshCw
+  RefreshCw,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import axios from '@/api/axios';
 
@@ -61,6 +63,21 @@ function AdminTournamentDetailPage() {
     } catch (error) {
       console.error('Error generating bracket:', error);
       alert('Error al generar las llaves');
+    }
+  };
+
+  const handleAdvanceToBracket = async () => {
+    if (!confirm('¿Avanzar a llaves de eliminación? Esto generará el bracket con los clasificados de los grupos.')) {
+      return;
+    }
+
+    try {
+      const res = await axios.post(`/tournaments/${id}/advance-to-bracket`);
+      alert(res.data.message || 'Bracket de eliminación generado');
+      fetchTournamentData();
+    } catch (error) {
+      console.error('Error advancing to bracket:', error);
+      alert(error.response?.data?.message || 'Error al avanzar a llaves');
     }
   };
 
@@ -122,13 +139,22 @@ function AdminTournamentDetailPage() {
         </div>
         
         <div className="flex gap-3">
-          {!tournament.bracket && participants.length >= 2 && (
+          {!tournament.bracket && participants.length >= 2 && !tournament.hasGroups && (
             <button
               onClick={handleGenerateBracket}
               className="btn btn-primary"
             >
               <Trophy className="w-5 h-5" />
               Generar Llaves
+            </button>
+          )}
+          {tournament.hasGroups && !tournament.matches?.length && participants.length >= 2 && (
+            <button
+              onClick={handleGenerateBracket}
+              className="btn btn-primary"
+            >
+              <Users className="w-5 h-5" />
+              Generar Grupos
             </button>
           )}
           <button
@@ -202,12 +228,18 @@ function AdminTournamentDetailPage() {
 
       {/* Tabs */}
       <div className="border-b">
-        <div className="flex gap-8">
-          {['overview', 'participants', 'bracket', 'matches'].map((tab) => (
+        <div className="flex gap-8 overflow-x-auto">
+          {[
+            'overview',
+            'participants',
+            ...(tournament.hasGroups ? ['groups'] : []),
+            'bracket',
+            'matches'
+          ].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`py-3 font-medium border-b-2 transition-colors ${
+              className={`py-3 font-medium border-b-2 transition-colors whitespace-nowrap ${
                 activeTab === tab
                   ? 'border-primary-500 text-primary-500'
                   : 'border-transparent text-gray-600 hover:text-gray-900'
@@ -215,6 +247,7 @@ function AdminTournamentDetailPage() {
             >
               {tab === 'overview' ? 'Resumen' :
                tab === 'participants' ? 'Participantes' :
+               tab === 'groups' ? 'Grupos' :
                tab === 'bracket' ? 'Llaves' : 'Partidos'}
             </button>
           ))}
@@ -226,20 +259,27 @@ function AdminTournamentDetailPage() {
         {activeTab === 'overview' && (
           <OverviewTab tournament={tournament} stats={stats} />
         )}
-        
+
         {activeTab === 'participants' && (
           <ParticipantsTab participants={participants} />
         )}
-        
+
+        {activeTab === 'groups' && tournament.hasGroups && (
+          <GroupsTab
+            tournament={tournament}
+            onAdvanceToBracket={handleAdvanceToBracket}
+          />
+        )}
+
         {activeTab === 'bracket' && (
-          <BracketTab 
-            tournament={tournament} 
+          <BracketTab
+            tournament={tournament}
             onGenerateBracket={handleGenerateBracket}
           />
         )}
-        
+
         {activeTab === 'matches' && (
-          <MatchesTab 
+          <MatchesTab
             tournament={tournament}
             onStartMatch={handleStartMatch}
             onEditMatch={(match) => {
@@ -268,78 +308,222 @@ function AdminTournamentDetailPage() {
 
 // Overview Tab Component
 function OverviewTab({ tournament, stats }) {
+  const cfg = tournament.groupConfig;
+  const allMatches = tournament.matches || [];
+
+  // Detectar ganador desde el partido Final completado
+  const finalMatch = allMatches.find(m => m.round === 'Final' && m.status === 'completed');
+  const tournamentWinner = finalMatch
+    ? (finalMatch.winner?.toString() === finalMatch.team1?.participantId?.toString()
+        ? finalMatch.team1?.teamName
+        : finalMatch.team2?.teamName)
+    : null;
+
+  // Separar partidos de grupo y de eliminación
+  const groupNames = new Set((tournament.groups || []).map(g => g.name));
+  const groupMatches = allMatches.filter(m => groupNames.has(m.round));
+  const elimMatches = allMatches.filter(m => !groupNames.has(m.round));
+  const groupCompleted = groupMatches.filter(m => m.status === 'completed').length;
+  const elimCompleted = elimMatches.filter(m => m.status === 'completed').length;
+
+  // Fase actual
+  let currentPhase = null;
+  if (tournamentWinner) currentPhase = 'finished';
+  else if (elimMatches.length > 0) currentPhase = 'elimination';
+  else if (groupMatches.length > 0) currentPhase = tournament.groupPhaseComplete ? 'groups-done' : 'groups';
+  else if (allMatches.length > 0) currentPhase = 'in-progress';
+
+  const phaseLabel = {
+    finished: { text: 'Torneo finalizado', color: 'bg-purple-100 text-purple-800' },
+    elimination: { text: 'Fase de eliminación', color: 'bg-orange-100 text-orange-800' },
+    'groups-done': { text: 'Grupos completados — Pendiente generar llaves', color: 'bg-yellow-100 text-yellow-800' },
+    groups: { text: 'Fase de grupos en curso', color: 'bg-blue-100 text-blue-800' },
+    'in-progress': { text: 'En progreso', color: 'bg-blue-100 text-blue-800' },
+  }[currentPhase];
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <div className="card">
-        <h3 className="text-xl font-bold text-gray-900 mb-4">Información del Torneo</h3>
-        <div className="space-y-3">
-          <div className="flex items-center gap-3">
-            <Calendar className="w-5 h-5 text-gray-400" />
-            <div>
-              <p className="text-sm text-gray-600">Fecha de inicio</p>
-              <p className="font-semibold">
-                {new Date(tournament.dates.start).toLocaleDateString('es-ES')}
-              </p>
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-3">
-            <MapPin className="w-5 h-5 text-gray-400" />
-            <div>
-              <p className="text-sm text-gray-600">Sede</p>
-              <p className="font-semibold">{tournament.location.venue}</p>
-            </div>
-          </div>
+    <div className="space-y-6">
+      {/* Ganador */}
+      {tournamentWinner && (
+        <div className="card bg-gradient-to-r from-yellow-400 to-amber-500 text-white text-center py-8">
+          <Trophy className="w-12 h-12 mx-auto mb-3 text-white" />
+          <p className="text-sm font-semibold uppercase tracking-wider opacity-80 mb-1">Campeón del torneo</p>
+          <p className="text-4xl font-display font-bold">{tournamentWinner}</p>
+        </div>
+      )}
 
-          <div className="flex items-center gap-3">
-            <Trophy className="w-5 h-5 text-gray-400" />
-            <div>
-              <p className="text-sm text-gray-600">Modalidad</p>
-              <p className="font-semibold capitalize">{tournament.modality}</p>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Info */}
+        <div className="card">
+          <h3 className="text-xl font-bold text-gray-900 mb-4">Información del Torneo</h3>
+          <div className="space-y-3">
+            <div className="flex items-center gap-3">
+              <Calendar className="w-5 h-5 text-gray-400 shrink-0" />
+              <div>
+                <p className="text-sm text-gray-600">Fecha de inicio</p>
+                <p className="font-semibold">
+                  {new Date(tournament.dates.start).toLocaleDateString('es-ES')}
+                </p>
+              </div>
             </div>
-          </div>
 
-          <div className="flex items-center gap-3">
-            <Users className="w-5 h-5 text-gray-400" />
-            <div>
-              <p className="text-sm text-gray-600">Formato</p>
-              <p className="font-semibold">{tournament.format}</p>
+            <div className="flex items-center gap-3">
+              <MapPin className="w-5 h-5 text-gray-400 shrink-0" />
+              <div>
+                <p className="text-sm text-gray-600">Sede</p>
+                <p className="font-semibold">{tournament.location.venue}</p>
+              </div>
             </div>
+
+            <div className="flex items-center gap-3">
+              <Trophy className="w-5 h-5 text-gray-400 shrink-0" />
+              <div>
+                <p className="text-sm text-gray-600">Modalidad</p>
+                <p className="font-semibold capitalize">{tournament.modality}</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <Users className="w-5 h-5 text-gray-400 shrink-0" />
+              <div>
+                <p className="text-sm text-gray-600">Formato</p>
+                <p className="font-semibold">{tournament.format}</p>
+              </div>
+            </div>
+
+            {/* Configuración de grupos */}
+            {tournament.hasGroups && cfg && (
+              <>
+                <div className="border-t pt-3 mt-3">
+                  <p className="text-sm font-semibold text-gray-700 mb-2">Fase de Grupos</p>
+                  <div className="space-y-1 text-sm text-gray-600">
+                    <p>
+                      <span className="font-medium">{cfg.numGroups}</span> grupos ·{' '}
+                      <span className="font-medium">{cfg.teamsToAdvancePerGroup}</span> clasifican por grupo
+                    </p>
+                    <p>
+                      Clasificación por{' '}
+                      <span className="font-medium">
+                        {cfg.classificationMethod === 'points' ? 'puntos' : 'coeficiente'}
+                      </span>
+                    </p>
+                    {cfg.classificationMethod === 'points' && cfg.pointsConfig && (
+                      <p className="text-xs text-gray-500">
+                        Victoria 2-0: {cfg.pointsConfig.win2_0}pts ·{' '}
+                        Victoria 2-1: {cfg.pointsConfig.win2_1}pts ·{' '}
+                        Derrota 2-1: {cfg.pointsConfig.lose2_1}pts ·{' '}
+                        Derrota 0-2: {cfg.pointsConfig.lose2_0}pts
+                      </p>
+                    )}
+                    {cfg.classificationMethod === 'coefficient' && (
+                      <p className="text-xs text-gray-500">
+                        Coeficiente: {cfg.coefficientType === 'sets' ? 'Sets a favor / Sets en contra' : 'Puntos a favor / Puntos en contra'}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Fase actual */}
+            {phaseLabel && (
+              <div className={`mt-2 inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full ${phaseLabel.color}`}>
+                {phaseLabel.text}
+              </div>
+            )}
           </div>
         </div>
-      </div>
 
-      <div className="card">
-        <h3 className="text-xl font-bold text-gray-900 mb-4">Progreso del Torneo</h3>
-        {stats && (
-          <div className="space-y-4">
-            <div>
-              <div className="flex justify-between text-sm mb-2">
-                <span className="text-gray-600">Partidos Completados</span>
-                <span className="font-semibold">
-                  {stats.completedMatches} / {stats.totalMatches}
-                </span>
+        {/* Progreso */}
+        <div className="card">
+          <h3 className="text-xl font-bold text-gray-900 mb-4">Progreso del Torneo</h3>
+          <div className="space-y-5">
+            {tournament.hasGroups && groupMatches.length > 0 && (
+              <div>
+                <div className="flex justify-between text-sm mb-1">
+                  <span className="text-gray-600 font-medium">Fase de grupos</span>
+                  <span className="font-semibold text-gray-900">
+                    {groupCompleted} / {groupMatches.length} partidos
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className={`rounded-full h-2 transition-all ${tournament.groupPhaseComplete ? 'bg-green-500' : 'bg-blue-500'}`}
+                    style={{ width: `${groupMatches.length > 0 ? (groupCompleted / groupMatches.length) * 100 : 0}%` }}
+                  />
+                </div>
+                {tournament.groupPhaseComplete && (
+                  <p className="text-xs text-green-600 font-semibold mt-1 flex items-center gap-1">
+                    <CheckCircle className="w-3 h-3" /> Completada
+                  </p>
+                )}
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div
-                  className="bg-green-500 rounded-full h-2 transition-all"
-                  style={{
-                    width: `${stats.totalMatches > 0 
-                      ? (stats.completedMatches / stats.totalMatches) * 100 
-                      : 0}%`
-                  }}
-                ></div>
-              </div>
-            </div>
+            )}
 
-            {stats.currentRound && (
+            {elimMatches.length > 0 && (
+              <div>
+                <div className="flex justify-between text-sm mb-1">
+                  <span className="text-gray-600 font-medium">Fase de eliminación</span>
+                  <span className="font-semibold text-gray-900">
+                    {elimCompleted} / {elimMatches.length} partidos
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className={`rounded-full h-2 transition-all ${elimCompleted === elimMatches.length ? 'bg-green-500' : 'bg-orange-500'}`}
+                    style={{ width: `${elimMatches.length > 0 ? (elimCompleted / elimMatches.length) * 100 : 0}%` }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {!tournament.hasGroups && stats && (
+              <div>
+                <div className="flex justify-between text-sm mb-1">
+                  <span className="text-gray-600">Partidos completados</span>
+                  <span className="font-semibold">{stats.completedMatches} / {stats.totalMatches}</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className="bg-green-500 rounded-full h-2 transition-all"
+                    style={{ width: `${stats.totalMatches > 0 ? (stats.completedMatches / stats.totalMatches) * 100 : 0}%` }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {stats?.currentRound && (
               <div className="p-4 bg-blue-50 rounded-lg">
                 <p className="text-sm text-blue-600 font-semibold">Ronda Actual</p>
                 <p className="text-lg font-bold text-blue-900">{stats.currentRound}</p>
               </div>
             )}
+
+            {/* Clasificados al bracket */}
+            {tournament.bracket?.participants?.length > 0 && (
+              <div>
+                <p className="text-sm font-medium text-gray-700 mb-2">
+                  Clasificados a llaves ({tournament.bracket.participants.length})
+                </p>
+                <div className="space-y-1">
+                  {tournament.bracket.participants.slice(0, 8).map(p => (
+                    <div key={p.id} className="flex items-center gap-2 text-sm">
+                      <span className="w-5 h-5 bg-gray-100 rounded-full flex items-center justify-center text-xs font-bold text-gray-500">
+                        {p.seed}
+                      </span>
+                      <span className="text-gray-800">{p.teamName}</span>
+                    </div>
+                  ))}
+                  {tournament.bracket.participants.length > 8 && (
+                    <p className="text-xs text-gray-400 pl-7">
+                      + {tournament.bracket.participants.length - 8} más...
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
@@ -380,9 +564,193 @@ function ParticipantsTab({ participants }) {
   );
 }
 
+// Groups Tab Component
+function GroupsTab({ tournament, onAdvanceToBracket }) {
+  const [expandedGroups, setExpandedGroups] = useState({});
+  const method = tournament.groupConfig?.classificationMethod || 'points';
+  const cfg = tournament.groupConfig;
+
+  const toggleGroup = (name) => {
+    setExpandedGroups(prev => ({ ...prev, [name]: !prev[name] }));
+  };
+
+  const numDirect = (tournament.groups?.length || 0) * (cfg?.teamsToAdvancePerGroup || 0);
+  const nextPow2 = Math.pow(2, Math.ceil(Math.log2(Math.max(numDirect, 2))));
+  const extraNeeded = Math.max(nextPow2 - numDirect, 0);
+
+  if (!tournament.groups || tournament.groups.length === 0) {
+    return (
+      <div className="card text-center py-12">
+        <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+        <h3 className="text-xl font-bold text-gray-900 mb-2">Fase de grupos no generada</h3>
+        <p className="text-gray-600">Genera las llaves del torneo para crear los grupos</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {tournament.groupPhaseComplete && !tournament.bracket && (
+        <div className="card bg-green-50 border border-green-200">
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div>
+              <p className="font-semibold text-green-800">¡Fase de grupos completada!</p>
+              <p className="text-sm text-green-700 mt-1">
+                {numDirect} equipos clasifican directamente
+                {extraNeeded > 0 && ` + ${extraNeeded} mejores terceros`}
+                {' → '}{nextPow2} equipos en llaves de eliminación
+              </p>
+            </div>
+            <button onClick={onAdvanceToBracket} className="btn btn-primary">
+              <Trophy className="w-5 h-5" />
+              Avanzar a Llaves
+            </button>
+          </div>
+        </div>
+      )}
+
+      {tournament.groups.map((group) => {
+        const sortedParticipants = [...group.participants].sort((a, b) => {
+          if (method === 'points') {
+            if (b.points !== a.points) return b.points - a.points;
+            return b.coefficient - a.coefficient;
+          }
+          if (b.coefficient !== a.coefficient) return b.coefficient - a.coefficient;
+          return b.points - a.points;
+        });
+
+        const groupMatches = (tournament.matches || []).filter(m => m.round === group.name);
+        const isExpanded = expandedGroups[group.name] ?? false;
+
+        return (
+          <div key={group.name} className="card">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <h3 className="text-xl font-bold text-gray-900">{group.name}</h3>
+                {group.complete && (
+                  <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-semibold rounded-full">
+                    Completado
+                  </span>
+                )}
+              </div>
+              <span className="text-sm text-gray-500">
+                {groupMatches.filter(m => m.status === 'completed').length}/{groupMatches.length} partidos
+              </span>
+            </div>
+
+            {/* Standings table */}
+            <div className="overflow-x-auto mb-4">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b text-left text-gray-600">
+                    <th className="pb-2 w-8">Pos</th>
+                    <th className="pb-2">Equipo</th>
+                    <th className="pb-2 text-center">PJ</th>
+                    <th className="pb-2 text-center">G</th>
+                    <th className="pb-2 text-center">P</th>
+                    {method === 'points' && <th className="pb-2 text-center">Pts</th>}
+                    <th className="pb-2 text-center">SF</th>
+                    <th className="pb-2 text-center">SA</th>
+                    <th className="pb-2 text-center">PF</th>
+                    <th className="pb-2 text-center">PC</th>
+                    <th className="pb-2 text-center">Coef</th>
+                    <th className="pb-2 text-center">Clasifica</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sortedParticipants.map((p, idx) => {
+                    const advances = idx < (cfg?.teamsToAdvancePerGroup || 0);
+                    return (
+                      <tr
+                        key={p.participantId?.toString() || idx}
+                        className={`border-b last:border-0 ${advances ? 'bg-green-50' : ''}`}
+                      >
+                        <td className="py-2 font-semibold text-gray-500">{idx + 1}</td>
+                        <td className="py-2 font-medium text-gray-900">{p.teamName}</td>
+                        <td className="py-2 text-center">{p.played}</td>
+                        <td className="py-2 text-center">{p.wins}</td>
+                        <td className="py-2 text-center">{p.losses}</td>
+                        {method === 'points' && <td className="py-2 text-center font-semibold">{p.points}</td>}
+                        <td className="py-2 text-center">{p.setsFor}</td>
+                        <td className="py-2 text-center">{p.setsAgainst}</td>
+                        <td className="py-2 text-center">{p.pointsFor}</td>
+                        <td className="py-2 text-center">{p.pointsAgainst}</td>
+                        <td className="py-2 text-center">{p.coefficient?.toFixed(2) || '0.00'}</td>
+                        <td className="py-2 text-center">
+                          {advances
+                            ? <CheckCircle className="w-4 h-4 text-green-500 mx-auto" />
+                            : <span className="text-gray-300">—</span>}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Toggle partidos */}
+            {groupMatches.length > 0 && (
+              <div>
+                <button
+                  onClick={() => toggleGroup(group.name)}
+                  className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 font-medium"
+                >
+                  {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                  {isExpanded ? 'Ocultar' : 'Ver'} partidos ({groupMatches.length})
+                </button>
+
+                {isExpanded && (
+                  <div className="mt-3 space-y-2">
+                    {groupMatches.map((match) => (
+                      <div key={match._id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg text-sm">
+                        <span className="font-medium">{match.team1?.teamName || 'TBD'}</span>
+                        <div className="text-center flex items-center gap-2">
+                          {match.status === 'completed' ? (
+                            <span className="font-bold text-gray-900">
+                              {match.team1.score.join('-')} / {match.team2.score.join('-')}
+                            </span>
+                          ) : (
+                            <span className={`px-2 py-0.5 rounded text-xs font-semibold ${
+                              match.status === 'in-progress' ? 'bg-yellow-100 text-yellow-700' : 'bg-blue-100 text-blue-700'
+                            }`}>
+                              {match.status === 'in-progress' ? 'En juego' : 'Pendiente'}
+                            </span>
+                          )}
+                        </div>
+                        <span className="font-medium">{match.team2?.teamName || 'TBD'}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // Bracket Tab Component
 function BracketTab({ tournament, onGenerateBracket }) {
-  if (!tournament.bracket || !tournament.matches || tournament.matches.length === 0) {
+  const eliminationMatches = tournament.hasGroups
+    ? (tournament.matches || []).filter(m => !tournament.groups?.some(g => g.name === m.round))
+    : tournament.matches;
+
+  if (!tournament.bracket || !eliminationMatches || eliminationMatches.length === 0) {
+    if (tournament.hasGroups) {
+      return (
+        <div className="card text-center py-12">
+          <Trophy className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-xl font-bold text-gray-900 mb-2">
+            Las llaves de eliminación aún no se han generado
+          </h3>
+          <p className="text-gray-600">
+            Completa la fase de grupos y avanza desde el tab "Grupos"
+          </p>
+        </div>
+      );
+    }
     return (
       <div className="card text-center py-12">
         <Trophy className="w-16 h-16 text-gray-400 mx-auto mb-4" />
@@ -400,8 +768,8 @@ function BracketTab({ tournament, onGenerateBracket }) {
     );
   }
 
-  // Agrupar partidos por ronda
-  const matchesByRound = tournament.matches.reduce((acc, match) => {
+  // Agrupar partidos por ronda (solo eliminación)
+  const matchesByRound = eliminationMatches.reduce((acc, match) => {
     if (!acc[match.round]) acc[match.round] = [];
     acc[match.round].push(match);
     return acc;

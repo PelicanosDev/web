@@ -52,8 +52,8 @@ exports.updateMatchResult = async (req, res) => {
         p => p.id.toString() === winnerId.toString()
       );
       const loserParticipant = tournament.bracket.participants.find(
-        p => p.id.toString() !== winnerId.toString() && 
-           (p.id.toString() === match.team1.participantId?.toString() || 
+        p => p.id.toString() !== winnerId.toString() &&
+           (p.id.toString() === match.team1.participantId?.toString() ||
             p.id.toString() === match.team2.participantId?.toString())
       );
 
@@ -63,6 +63,93 @@ exports.updateMatchResult = async (req, res) => {
       }
       if (loserParticipant) {
         loserParticipant.losses = (loserParticipant.losses || 0) + 1;
+      }
+    }
+
+    // Actualizar standings de fase de grupos
+    if (tournament.hasGroups && tournament.groups && tournament.groups.length > 0) {
+      const group = tournament.groups.find(g => g.name === match.round);
+      if (group) {
+        const p1 = group.participants.find(
+          p => p.participantId?.toString() === match.team1.participantId?.toString()
+        );
+        const p2 = group.participants.find(
+          p => p.participantId?.toString() === match.team2.participantId?.toString()
+        );
+
+        if (p1 && p2) {
+          const cfg = tournament.groupConfig || {};
+          const pointsCfg = cfg.pointsConfig || { win2_0: 3, win2_1: 2, lose2_1: 1, lose2_0: 0 };
+          const coeffType = cfg.coefficientType || 'sets';
+
+          const team1SetsWon = match.team1.score.filter((s, i) => s > (match.team2.score[i] || 0)).length;
+          const team2SetsWon = match.team2.score.filter((s, i) => s > (match.team1.score[i] || 0)).length;
+          const team1TotalPts = match.team1.score.reduce((a, b) => a + b, 0);
+          const team2TotalPts = match.team2.score.reduce((a, b) => a + b, 0);
+
+          const team1Won = winnerId.toString() === match.team1.participantId?.toString();
+          const winnerSets = team1Won ? team1SetsWon : team2SetsWon;
+          const loserSets  = team1Won ? team2SetsWon : team1SetsWon;
+          const isClean = loserSets === 0; // 2-0
+
+          // Actualizar p1
+          p1.played++;
+          p1.setsFor     += team1SetsWon;
+          p1.setsAgainst += team2SetsWon;
+          p1.pointsFor     += team1TotalPts;
+          p1.pointsAgainst += team2TotalPts;
+          if (team1Won) {
+            p1.wins++;
+            p1.points += isClean ? (pointsCfg.win2_0 ?? 3) : (pointsCfg.win2_1 ?? 2);
+          } else {
+            p1.losses++;
+            p1.points += isClean ? (pointsCfg.lose2_0 ?? 0) : (pointsCfg.lose2_1 ?? 1);
+          }
+          p1.coefficient = coeffType === 'sets'
+            ? p1.setsFor / Math.max(p1.setsAgainst, 1)
+            : p1.pointsFor / Math.max(p1.pointsAgainst, 1);
+
+          // Actualizar p2 (inverso)
+          const team2Won = !team1Won;
+          const isClean2 = team1SetsWon === 0; // p2 ganó 2-0
+          p2.played++;
+          p2.setsFor     += team2SetsWon;
+          p2.setsAgainst += team1SetsWon;
+          p2.pointsFor     += team2TotalPts;
+          p2.pointsAgainst += team1TotalPts;
+          if (team2Won) {
+            p2.wins++;
+            p2.points += isClean2 ? (pointsCfg.win2_0 ?? 3) : (pointsCfg.win2_1 ?? 2);
+          } else {
+            p2.losses++;
+            p2.points += isClean2 ? (pointsCfg.lose2_0 ?? 0) : (pointsCfg.lose2_1 ?? 1);
+          }
+          p2.coefficient = coeffType === 'sets'
+            ? p2.setsFor / Math.max(p2.setsAgainst, 1)
+            : p2.pointsFor / Math.max(p2.pointsAgainst, 1);
+
+          // ¿El grupo está completo?
+          const n = group.participants.length;
+          const totalGroupMatches = (n * (n - 1)) / 2;
+          const completedGroupMatches = tournament.matches.filter(
+            m => m.round === group.name && m.status === 'completed'
+          ).length;
+
+          if (completedGroupMatches >= totalGroupMatches) {
+            group.complete = true;
+            // Asignar ranks con tiebreakers
+            const method = cfg.classificationMethod || 'points';
+            const sorted = rankGroupParticipants(group.participants, method, group.name, tournament);
+            sorted.forEach((p, idx) => { p.rank = idx + 1; });
+          }
+
+          // ¿Todos los grupos completos?
+          if (tournament.groups.every(g => g.complete)) {
+            tournament.groupPhaseComplete = true;
+          }
+
+          tournament.markModified('groups');
+        }
       }
     }
 
@@ -187,6 +274,33 @@ exports.getStandings = async (req, res) => {
     });
   }
 };
+
+// Función auxiliar para rankear participantes de un grupo con tiebreakers
+function rankGroupParticipants(participants, method, groupName, tournament) {
+  return [...participants].sort((a, b) => {
+    const primaryA = method === 'points' ? a.points : a.coefficient;
+    const primaryB = method === 'points' ? b.points : b.coefficient;
+    if (primaryB !== primaryA) return primaryB - primaryA;
+
+    const secondaryA = method === 'points' ? a.coefficient : a.points;
+    const secondaryB = method === 'points' ? b.coefficient : b.points;
+    if (secondaryB !== secondaryA) return secondaryB - secondaryA;
+
+    // Desempate por enfrentamiento directo
+    const h2h = tournament.matches.find(m =>
+      m.round === groupName &&
+      m.status === 'completed' &&
+      ((m.team1.participantId?.toString() === a.participantId?.toString() &&
+        m.team2.participantId?.toString() === b.participantId?.toString()) ||
+       (m.team1.participantId?.toString() === b.participantId?.toString() &&
+        m.team2.participantId?.toString() === a.participantId?.toString()))
+    );
+    if (h2h) {
+      return h2h.winner?.toString() === a.participantId?.toString() ? -1 : 1;
+    }
+    return 0;
+  });
+}
 
 // Función auxiliar para obtener la ronda actual
 function getCurrentRound(tournament) {
