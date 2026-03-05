@@ -45,8 +45,12 @@ app.use(cookieParser());
 
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
-  message: 'Too many requests from this IP, please try again later.'
+  max: 500,
+  message: 'Too many requests from this IP, please try again later.',
+  skip: (req) => {
+    // Skip rate limiting for admin and match result endpoints
+    return req.path.startsWith('/admin/') || req.path.includes('/matches/');
+  }
 });
 
 app.use('/api/', limiter);
