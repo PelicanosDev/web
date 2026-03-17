@@ -7,6 +7,7 @@ import {
   Calendar, 
   Trophy, 
   Award,
+  Dumbbell,
   LogOut,
   Menu,
   X
@@ -23,6 +24,7 @@ function AdminLayout() {
   const menuItems = [
     { name: 'Dashboard', path: '/admin', icon: LayoutDashboard },
     { name: 'Members', path: '/admin/members', icon: Users },
+    { name: 'Ejercicios', path: '/admin/exercises', icon: Dumbbell },
     { name: 'Gallery', path: '/admin/gallery', icon: Image },
     { name: 'Events', path: '/admin/events', icon: Calendar },
     { name: 'Torneos', path: '/admin/tournaments', icon: Trophy },

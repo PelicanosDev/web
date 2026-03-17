@@ -1,5 +1,6 @@
 const Member = require('../models/Member');
 const User = require('../models/User');
+const Exercise = require('../models/Exercise');
 
 const getAllMembers = async (req, res, next) => {
   try {
@@ -329,6 +330,96 @@ const permanentlyDeleteMember = async (req, res, next) => {
   }
 };
 
+const addBulkPhysicalRecords = async (req, res, next) => {
+  try {
+    const { records } = req.body;
+
+    if (!records || !Array.isArray(records) || records.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Records array is required'
+      });
+    }
+
+    const exerciseIds = [...new Set(records.map(r => r.exerciseId))];
+    const exercises = await Exercise.find({ _id: { $in: exerciseIds }, isActive: true });
+    
+    if (exercises.length !== exerciseIds.length) {
+      return res.status(400).json({
+        success: false,
+        message: 'One or more exercises not found or inactive'
+      });
+    }
+
+    const exerciseMap = {};
+    exercises.forEach(ex => {
+      exerciseMap[ex._id.toString()] = ex;
+    });
+
+    const memberIds = [...new Set(records.map(r => r.memberId))];
+    const members = await Member.find({ _id: { $in: memberIds } });
+    
+    if (members.length !== memberIds.length) {
+      return res.status(400).json({
+        success: false,
+        message: 'One or more members not found'
+      });
+    }
+
+    let recordsCreated = 0;
+    const errors = [];
+
+    for (const record of records) {
+      try {
+        const { memberId, exerciseId, result, unit, times, notes } = record;
+
+        if (!result || result === '' || result === null) {
+          continue;
+        }
+
+        const member = members.find(m => m._id.toString() === memberId);
+        const exercise = exerciseMap[exerciseId];
+
+        if (!member || !exercise) {
+          errors.push({ memberId, exerciseId, error: 'Member or exercise not found' });
+          continue;
+        }
+
+        member.physicalRecords.push({
+          date: new Date(),
+          exercise: exercise.name,
+          result: parseFloat(result),
+          unit: unit || exercise.defaultUnit,
+          times: times || 1,
+          notes: notes || '',
+          recordedBy: req.user.id
+        });
+
+        await member.save();
+        recordsCreated++;
+      } catch (error) {
+        errors.push({ 
+          memberId: record.memberId, 
+          exerciseId: record.exerciseId, 
+          error: error.message 
+        });
+      }
+    }
+
+    res.status(201).json({
+      success: true,
+      message: `${recordsCreated} records created successfully`,
+      data: {
+        recordsCreated,
+        totalRecords: records.length,
+        errors: errors.length > 0 ? errors : undefined
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getAllMembers,
   getMemberById,
@@ -338,5 +429,6 @@ module.exports = {
   addPhysicalRecord,
   assignBadge,
   updateMemberUser,
-  permanentlyDeleteMember
+  permanentlyDeleteMember,
+  addBulkPhysicalRecords
 };

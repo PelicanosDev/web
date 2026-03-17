@@ -13,8 +13,9 @@ function MemberDetailPage() {
   const [showBadgeInfoModal, setShowBadgeInfoModal] = useState(false);
   const [selectedBadge, setSelectedBadge] = useState(null);
   const [availableBadges, setAvailableBadges] = useState([]);
+  const [exercises, setExercises] = useState([]);
   const [recordForm, setRecordForm] = useState({
-    exercise: '',
+    exerciseId: '',
     result: '',
     unit: 'cm',
     times: 1,
@@ -25,6 +26,7 @@ function MemberDetailPage() {
   useEffect(() => {
     fetchMemberDetails();
     fetchAvailableBadges();
+    fetchExercises();
   }, [id]);
 
   const fetchMemberDetails = async () => {
@@ -47,6 +49,15 @@ function MemberDetailPage() {
     }
   };
 
+  const fetchExercises = async () => {
+    try {
+      const response = await axios.get('/exercises');
+      setExercises(response.data.data);
+    } catch (error) {
+      console.error('Error fetching exercises:', error);
+    }
+  };
+
   const handleAssignBadge = async (badgeId) => {
     try {
       await axios.post(`/admin/members/${id}/badges`, { badgeId });
@@ -64,11 +75,19 @@ function MemberDetailPage() {
     setSubmitting(true);
 
     try {
-      await axios.post(`/admin/members/${id}/records`, recordForm);
+      const selectedExercise = exercises.find(ex => ex._id === recordForm.exerciseId);
+      const recordData = {
+        exercise: selectedExercise.name,
+        result: recordForm.result,
+        unit: recordForm.unit,
+        times: recordForm.times,
+        notes: recordForm.notes
+      };
+      await axios.post(`/admin/members/${id}/records`, recordData);
       alert('Récord agregado exitosamente');
       setShowRecordModal(false);
       setRecordForm({
-        exercise: '',
+        exerciseId: '',
         result: '',
         unit: 'cm',
         times: 1,
@@ -330,14 +349,26 @@ function MemberDetailPage() {
               <form onSubmit={handleAddRecord} className="p-6 space-y-4">
                 <div>
                   <label className="label">Ejercicio *</label>
-                  <input
-                    type="text"
-                    value={recordForm.exercise}
-                    onChange={(e) => setRecordForm({ ...recordForm, exercise: e.target.value })}
+                  <select
+                    value={recordForm.exerciseId}
+                    onChange={(e) => {
+                      const exercise = exercises.find(ex => ex._id === e.target.value);
+                      setRecordForm({ 
+                        ...recordForm, 
+                        exerciseId: e.target.value,
+                        unit: exercise ? exercise.defaultUnit : 'cm'
+                      });
+                    }}
                     className="input"
-                    placeholder="Ej: Salto vertical, Velocidad de saque, etc."
                     required
-                  />
+                  >
+                    <option value="">Selecciona un ejercicio</option>
+                    {exercises.map(exercise => (
+                      <option key={exercise._id} value={exercise._id}>
+                        {exercise.name} ({exercise.category})
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">

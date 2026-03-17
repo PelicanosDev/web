@@ -15,6 +15,7 @@ const eventRoutes = require('./routes/eventRoutes');
 const galleryRoutes = require('./routes/galleryRoutes');
 const badgeRoutes = require('./routes/badgeRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
+const exerciseRoutes = require('./routes/exerciseRoutes');
 
 const app = express();
 
@@ -23,6 +24,7 @@ app.use(helmet());
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:5174',
+  'http://localhost:5177',
   process.env.FRONTEND_URL
 ].filter(Boolean);
 
@@ -74,6 +76,8 @@ app.use('/api/admin/events', eventRoutes);
 app.use('/api/gallery', galleryRoutes);
 app.use('/api/badges', badgeRoutes);
 app.use('/api/admin/dashboard', dashboardRoutes);
+app.use('/api/exercises', exerciseRoutes);
+app.use('/api/admin/exercises', exerciseRoutes);
 
 app.use((req, res) => {
   res.status(404).json({

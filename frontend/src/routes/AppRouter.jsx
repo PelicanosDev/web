@@ -22,6 +22,7 @@ import AdminEventsPage from '@/pages/admin/AdminEventsPage';
 import AdminTournamentsPage from '@/pages/admin/AdminTournamentsPage';
 import AdminTournamentDetailPage from '@/pages/admin/AdminTournamentDetailPage';
 import BadgesPage from '@/pages/admin/BadgesPage';
+import ExercisesPage from '@/pages/admin/ExercisesPage';
 
 import MemberDashboard from '@/pages/member/MemberDashboard';
 import MemberProfilePage from '@/pages/member/MemberProfilePage';
@@ -81,6 +82,7 @@ function AppRouter() {
         <Route path="tournaments" element={<AdminTournamentsPage />} />
         <Route path="tournaments/:id" element={<AdminTournamentDetailPage />} />
         <Route path="badges" element={<BadgesPage />} />
+        <Route path="exercises" element={<ExercisesPage />} />
       </Route>
 
       <Route
