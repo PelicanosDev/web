@@ -1,10 +1,12 @@
 import { BrowserRouter } from 'react-router-dom';
 import AppRouter from './routes/AppRouter';
 import { AuthProvider } from './features/auth/context/AuthContext';
+import ScrollToTop from './components/ScrollToTop';
 
 function App() {
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <AuthProvider>
         <AppRouter />
       </AuthProvider>

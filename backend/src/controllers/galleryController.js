@@ -13,6 +13,11 @@ const getAllGalleryItems = async (req, res, next) => {
     const items = await GalleryItem.find(query)
       .populate('uploadedBy', 'profile.firstName profile.lastName')
       .populate('eventId', 'title date')
+      .populate('likes', 'profile.firstName profile.lastName')
+      .populate({
+        path: 'comments.user',
+        select: 'profile.firstName profile.lastName profile.avatar'
+      })
       .populate({
         path: 'taggedMembers',
         populate: {
@@ -270,6 +275,72 @@ const getPhotosByTaggedMember = async (req, res, next) => {
   }
 };
 
+const addComment = async (req, res, next) => {
+  try {
+    const { text } = req.body;
+    
+    if (!text || text.trim() === '') {
+      return res.status(400).json({
+        success: false,
+        message: 'Comment text is required'
+      });
+    }
+
+    const item = await GalleryItem.findById(req.params.id);
+
+    if (!item) {
+      return res.status(404).json({
+        success: false,
+        message: 'Gallery item not found'
+      });
+    }
+
+    item.comments.push({
+      user: req.user.id,
+      text: text.trim()
+    });
+
+    await item.save();
+
+    const updatedItem = await GalleryItem.findById(req.params.id)
+      .populate({
+        path: 'comments.user',
+        select: 'profile.firstName profile.lastName profile.avatar'
+      });
+
+    res.status(201).json({
+      success: true,
+      data: updatedItem.comments
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getComments = async (req, res, next) => {
+  try {
+    const item = await GalleryItem.findById(req.params.id)
+      .populate({
+        path: 'comments.user',
+        select: 'profile.firstName profile.lastName profile.avatar'
+      });
+
+    if (!item) {
+      return res.status(404).json({
+        success: false,
+        message: 'Gallery item not found'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: item.comments
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getAllGalleryItems,
   getGalleryItemById,
@@ -278,5 +349,7 @@ module.exports = {
   deleteGalleryItem,
   likeGalleryItem,
   tagMembersInPhoto,
-  getPhotosByTaggedMember
+  getPhotosByTaggedMember,
+  addComment,
+  getComments
 };

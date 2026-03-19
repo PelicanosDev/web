@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, User, Heart, MessageCircle, Share2, Calendar, ImageOff } from 'lucide-react';
+import { X, User, Heart, MessageCircle, Share2, Calendar, ImageOff, Send } from 'lucide-react';
 import axios from '@/api/axios';
+import { useAuth } from '@/features/auth/context/AuthContext';
 import logo from '@/assets/images/Logo.png';
 
 const categories = [
@@ -14,10 +15,17 @@ const categories = [
 ];
 
 function GalleryPage() {
+  const { user } = useAuth();
   const [selectedImage, setSelectedImage] = useState(null);
   const [filter, setFilter] = useState('all');
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showCommentsModal, setShowCommentsModal] = useState(false);
+  const [selectedImageForComments, setSelectedImageForComments] = useState(null);
+  const [comments, setComments] = useState([]);
+  const [newComment, setNewComment] = useState('');
+  const [loadingComments, setLoadingComments] = useState(false);
+  const [submittingComment, setSubmittingComment] = useState(false);
 
   useEffect(() => {
     fetchImages();
@@ -34,6 +42,81 @@ function GalleryPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleLike = async (imageId) => {
+    if (!user) {
+      alert('Debes iniciar sesión para dar me gusta');
+      return;
+    }
+
+    try {
+      const response = await axios.post(`/gallery/${imageId}/like`);
+      setImages(prevImages => 
+        prevImages.map(img => 
+          img._id === imageId 
+            ? { 
+                ...img, 
+                likes: response.data.data.isLiked 
+                  ? [...(img.likes || []), user] 
+                  : (img.likes || []).filter(u => u._id !== user.id)
+              }
+            : img
+        )
+      );
+    } catch (error) {
+      console.error('Error liking image:', error);
+      alert('Error al dar me gusta');
+    }
+  };
+
+  const handleOpenComments = async (image) => {
+    setSelectedImageForComments(image);
+    setShowCommentsModal(true);
+    setLoadingComments(true);
+    try {
+      const response = await axios.get(`/gallery/${image._id}/comments`);
+      setComments(response.data.data);
+    } catch (error) {
+      console.error('Error fetching comments:', error);
+    } finally {
+      setLoadingComments(false);
+    }
+  };
+
+  const handleAddComment = async (e) => {
+    e.preventDefault();
+    if (!user) {
+      alert('Debes iniciar sesión para comentar');
+      return;
+    }
+    if (!newComment.trim()) return;
+
+    setSubmittingComment(true);
+    try {
+      const response = await axios.post(`/gallery/${selectedImageForComments._id}/comments`, {
+        text: newComment
+      });
+      setComments(response.data.data);
+      setNewComment('');
+      setImages(prevImages => 
+        prevImages.map(img => 
+          img._id === selectedImageForComments._id 
+            ? { ...img, comments: response.data.data }
+            : img
+        )
+      );
+    } catch (error) {
+      console.error('Error adding comment:', error);
+      alert('Error al agregar comentario');
+    } finally {
+      setSubmittingComment(false);
+    }
+  };
+
+  const isLikedByUser = (image) => {
+    if (!user || !image.likes) return false;
+    return image.likes.some(like => like._id === user.id);
   };
 
   return (
@@ -220,13 +303,23 @@ function GalleryPage() {
 
                   {/* Actions */}
                   <div className="px-4 py-3 border-t border-slate-100 flex items-center gap-6">
-                    <button className="flex items-center gap-2 text-slate-500 hover:text-red-500 transition-colors text-sm font-medium cursor-pointer">
-                      <Heart className="w-5 h-5" />
-                      <span>Me gusta</span>
+                    <button 
+                      onClick={() => handleLike(image._id)}
+                      className={`flex items-center gap-2 transition-colors text-sm font-medium cursor-pointer ${
+                        isLikedByUser(image) 
+                          ? 'text-red-500' 
+                          : 'text-slate-500 hover:text-red-500'
+                      }`}
+                    >
+                      <Heart className={`w-5 h-5 ${isLikedByUser(image) ? 'fill-current' : ''}`} />
+                      <span>{image.likes?.length || 0} Me gusta</span>
                     </button>
-                    <button className="flex items-center gap-2 text-slate-500 hover:text-primary-500 transition-colors text-sm font-medium cursor-pointer">
+                    <button 
+                      onClick={() => handleOpenComments(image)}
+                      className="flex items-center gap-2 text-slate-500 hover:text-primary-500 transition-colors text-sm font-medium cursor-pointer"
+                    >
                       <MessageCircle className="w-5 h-5" />
-                      <span>Comentar</span>
+                      <span>{image.comments?.length || 0} Comentarios</span>
                     </button>
                     <button
                       className="flex items-center gap-2 text-slate-500 hover:text-primary-500 transition-colors ml-auto cursor-pointer"
@@ -315,6 +408,142 @@ function GalleryPage() {
                 </div>
               )}
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── COMMENTS MODAL ── */}
+      <AnimatePresence>
+        {showCommentsModal && selectedImageForComments && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+            onClick={() => setShowCommentsModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[80vh] flex flex-col"
+            >
+              {/* Header */}
+              <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between rounded-t-xl">
+                <h2 className="text-xl font-display font-bold text-gray-900">
+                  Comentarios
+                </h2>
+                <button
+                  onClick={() => setShowCommentsModal(false)}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Comments list */}
+              <div className="flex-1 overflow-y-auto px-6 py-4">
+                {loadingComments ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
+                  </div>
+                ) : comments.length === 0 ? (
+                  <div className="text-center py-12">
+                    <MessageCircle className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                    <p className="text-gray-500">No hay comentarios todavía</p>
+                    <p className="text-sm text-gray-400 mt-1">Sé el primero en comentar</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {comments.map((comment) => (
+                      <div key={comment._id} className="flex gap-3">
+                        {comment.user?.profile?.avatar ? (
+                          <img
+                            src={comment.user.profile.avatar}
+                            alt=""
+                            className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                          />
+                        ) : (
+                          <div className="w-10 h-10 rounded-full bg-primary-500 flex items-center justify-center text-white font-bold flex-shrink-0">
+                            {comment.user?.profile?.firstName?.charAt(0)}
+                            {comment.user?.profile?.lastName?.charAt(0)}
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="bg-gray-100 rounded-2xl px-4 py-2">
+                            <Link
+                              to={`/members/${comment.user?._id}`}
+                              className="font-bold text-gray-900 hover:text-primary-500 hover:underline text-sm"
+                              onClick={() => setShowCommentsModal(false)}
+                            >
+                              {comment.user?.profile?.firstName} {comment.user?.profile?.lastName}
+                            </Link>
+                            <p className="text-gray-800 text-sm mt-1 break-words">{comment.text}</p>
+                          </div>
+                          <p className="text-xs text-gray-400 mt-1 px-4">
+                            {new Date(comment.createdAt).toLocaleDateString('es-ES', {
+                              day: 'numeric',
+                              month: 'short',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Comment form */}
+              {user ? (
+                <form onSubmit={handleAddComment} className="sticky bottom-0 bg-white border-t border-gray-200 px-6 py-4 rounded-b-xl">
+                  <div className="flex gap-3">
+                    {user.profile?.avatar ? (
+                      <img
+                        src={user.profile.avatar}
+                        alt=""
+                        className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-primary-500 flex items-center justify-center text-white font-bold flex-shrink-0">
+                        {user.profile?.firstName?.charAt(0)}
+                        {user.profile?.lastName?.charAt(0)}
+                      </div>
+                    )}
+                    <div className="flex-1 flex gap-2">
+                      <input
+                        type="text"
+                        value={newComment}
+                        onChange={(e) => setNewComment(e.target.value)}
+                        placeholder="Escribe un comentario..."
+                        className="flex-1 px-4 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                        disabled={submittingComment}
+                      />
+                      <button
+                        type="submit"
+                        disabled={!newComment.trim() || submittingComment}
+                        className="p-2 bg-primary-500 text-white rounded-full hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      >
+                        <Send className="w-5 h-5" />
+                      </button>
+                    </div>
+                  </div>
+                </form>
+              ) : (
+                <div className="sticky bottom-0 bg-gray-50 border-t border-gray-200 px-6 py-4 text-center rounded-b-xl">
+                  <p className="text-gray-600 text-sm mb-3">Inicia sesión para comentar</p>
+                  <Link
+                    to="/login"
+                    className="inline-block bg-primary-500 text-white font-semibold px-6 py-2 rounded-lg hover:bg-primary-600 transition-colors"
+                  >
+                    Iniciar Sesión
+                  </Link>
+                </div>
+              )}
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

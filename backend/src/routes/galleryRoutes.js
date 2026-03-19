@@ -10,13 +10,17 @@ const {
   deleteGalleryItem,
   likeGalleryItem,
   tagMembersInPhoto,
-  getPhotosByTaggedMember
+  getPhotosByTaggedMember,
+  addComment,
+  getComments
 } = require('../controllers/galleryController');
 
 router.get('/', getAllGalleryItems);
 router.get('/:id', getGalleryItemById);
 router.get('/member/:memberId/tagged', getPhotosByTaggedMember);
+router.get('/:id/comments', getComments);
 router.post('/:id/like', authenticate, likeGalleryItem);
+router.post('/:id/comments', authenticate, addComment);
 
 router.use(authenticate);
 router.use(authorize('admin', 'coach'));
