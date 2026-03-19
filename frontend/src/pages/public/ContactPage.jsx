@@ -15,12 +15,6 @@ const contactItems = [
     href: 'tel:+573113057249',
   },
   {
-    icon: Phone,
-    label: 'WhatsApp',
-    value: '+57 317 599 3837',
-    href: 'tel:+573175993837',
-  },
-  {
     icon: Mail,
     label: 'Email',
     value: 'pelicanosvoleyclub@gmail.com',
