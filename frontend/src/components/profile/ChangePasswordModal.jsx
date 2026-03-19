@@ -3,17 +3,12 @@ import { X, Lock, Eye, EyeOff } from 'lucide-react';
 import { motion } from 'framer-motion';
 import axios from '@/api/axios';
 
+const inputCls = 'w-full px-4 py-3 border-2 border-slate-200 focus:border-primary-500 outline-none transition-colors text-slate-900 bg-white pr-10';
+const labelCls = 'block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2';
+
 function ChangePasswordModal({ isOpen, onClose }) {
-  const [formData, setFormData] = useState({
-    currentPassword: '',
-    newPassword: '',
-    confirmPassword: ''
-  });
-  const [showPasswords, setShowPasswords] = useState({
-    current: false,
-    new: false,
-    confirm: false
-  });
+  const [formData, setFormData] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
+  const [showPasswords, setShowPasswords] = useState({ current: false, new: false, confirm: false });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
@@ -27,31 +22,20 @@ function ChangePasswordModal({ isOpen, onClose }) {
       setError('Las contraseñas nuevas no coinciden');
       return;
     }
-
     if (formData.newPassword.length < 6) {
       setError('La contraseña debe tener al menos 6 caracteres');
       return;
     }
 
     setLoading(true);
-
     try {
       await axios.put('/auth/change-password', {
         currentPassword: formData.currentPassword,
         newPassword: formData.newPassword
       });
-
       setSuccess(true);
-      setFormData({
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: ''
-      });
-
-      setTimeout(() => {
-        onClose();
-        setSuccess(false);
-      }, 2000);
+      setFormData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      setTimeout(() => { onClose(); setSuccess(false); }, 2000);
     } catch (err) {
       setError(err.response?.data?.message || 'Error al cambiar la contraseña');
     } finally {
@@ -60,10 +44,7 @@ function ChangePasswordModal({ isOpen, onClose }) {
   };
 
   const togglePasswordVisibility = (field) => {
-    setShowPasswords(prev => ({
-      ...prev,
-      [field]: !prev[field]
-    }));
+    setShowPasswords(prev => ({ ...prev, [field]: !prev[field] }));
   };
 
   if (!isOpen) return null;
@@ -73,7 +54,7 @@ function ChangePasswordModal({ isOpen, onClose }) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"
       onClick={onClose}
     >
       <motion.div
@@ -81,18 +62,23 @@ function ChangePasswordModal({ isOpen, onClose }) {
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}
         onClick={(e) => e.stopPropagation()}
-        className="bg-white rounded-xl shadow-xl max-w-md w-full"
+        className="bg-white shadow-2xl max-w-md w-full"
       >
-        <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+        <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary-100 rounded-lg flex items-center justify-center">
-              <Lock className="w-5 h-5 text-primary-600" />
+            <div className="w-8 h-8 bg-primary-500 flex items-center justify-center">
+              <Lock className="w-4 h-4 text-white" />
             </div>
-            <h2 className="text-xl font-display font-bold text-gray-900">Cambiar Contraseña</h2>
+            <div>
+              <p className="text-xs font-bold uppercase tracking-widest text-primary-500 mb-0.5">Seguridad</p>
+              <h2 className="font-display font-black uppercase text-slate-900 text-lg leading-none">
+                Cambiar Contraseña
+              </h2>
+            </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -100,32 +86,31 @@ function ChangePasswordModal({ isOpen, onClose }) {
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+            <div className="bg-red-50 border-l-4 border-red-500 px-4 py-3 text-sm text-red-700 font-medium">
               {error}
             </div>
           )}
-
           {success && (
-            <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm">
-              ¡Contraseña cambiada exitosamente!
+            <div className="bg-green-50 border-l-4 border-green-500 px-4 py-3 text-sm text-green-700 font-bold uppercase tracking-widest">
+              Contraseña cambiada exitosamente
             </div>
           )}
 
           <div>
-            <label className="label">Contraseña Actual *</label>
+            <label className={labelCls}>Contraseña Actual *</label>
             <div className="relative">
               <input
                 type={showPasswords.current ? 'text' : 'password'}
                 value={formData.currentPassword}
                 onChange={(e) => setFormData({ ...formData, currentPassword: e.target.value })}
-                className="input pr-10"
+                className={inputCls}
                 required
                 disabled={loading}
               />
               <button
                 type="button"
                 onClick={() => togglePasswordVisibility('current')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary-500 transition-colors cursor-pointer"
               >
                 {showPasswords.current ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
@@ -133,13 +118,13 @@ function ChangePasswordModal({ isOpen, onClose }) {
           </div>
 
           <div>
-            <label className="label">Nueva Contraseña *</label>
+            <label className={labelCls}>Nueva Contraseña *</label>
             <div className="relative">
               <input
                 type={showPasswords.new ? 'text' : 'password'}
                 value={formData.newPassword}
                 onChange={(e) => setFormData({ ...formData, newPassword: e.target.value })}
-                className="input pr-10"
+                className={inputCls}
                 required
                 disabled={loading}
                 minLength={6}
@@ -147,50 +132,50 @@ function ChangePasswordModal({ isOpen, onClose }) {
               <button
                 type="button"
                 onClick={() => togglePasswordVisibility('new')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary-500 transition-colors cursor-pointer"
               >
                 {showPasswords.new ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
             </div>
-            <p className="text-xs text-gray-500 mt-1">Mínimo 6 caracteres</p>
+            <p className="text-xs text-slate-400 mt-1">Mínimo 6 caracteres</p>
           </div>
 
           <div>
-            <label className="label">Confirmar Nueva Contraseña *</label>
+            <label className={labelCls}>Confirmar Nueva Contraseña *</label>
             <div className="relative">
               <input
                 type={showPasswords.confirm ? 'text' : 'password'}
                 value={formData.confirmPassword}
                 onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                className="input pr-10"
+                className={inputCls}
                 required
                 disabled={loading}
               />
               <button
                 type="button"
                 onClick={() => togglePasswordVisibility('confirm')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary-500 transition-colors cursor-pointer"
               >
                 {showPasswords.confirm ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
             </div>
           </div>
 
-          <div className="flex gap-3 pt-4">
+          <div className="flex gap-3 pt-2">
             <button
               type="button"
               onClick={onClose}
-              className="btn btn-secondary flex-1"
               disabled={loading}
+              className="flex-1 inline-flex items-center justify-center border-2 border-slate-200 text-slate-700 font-display font-bold uppercase tracking-wide px-5 py-2.5 hover:border-slate-400 transition-all cursor-pointer disabled:opacity-50"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              className="btn btn-primary flex-1"
               disabled={loading}
+              className="flex-1 inline-flex items-center justify-center bg-primary-500 text-white font-display font-bold uppercase tracking-wide px-5 py-2.5 hover:bg-primary-600 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
             >
-              {loading ? 'Cambiando...' : 'Cambiar Contraseña'}
+              {loading ? 'Cambiando...' : 'Cambiar'}
             </button>
           </div>
         </form>

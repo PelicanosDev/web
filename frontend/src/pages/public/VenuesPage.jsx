@@ -9,7 +9,7 @@ const venues = [
     description:
       'Sede principal del club. Canchas de arena profesional ubicadas en el Bosque Popular El Prado, frente a las canchas de tenis. Un entorno natural único para entrenar, competir y disfrutar el voley playa.',
     hours: 'Lun, Mié y Vie — Horario según programación del club',
-    phones: ['+57 311 305 7249', '+57 317 599 3837'],
+    phones: ['+57 311 305 7249'],
     image: 'https://www.lapatria.com/sites/default/files/noticia/2023-02/a.aaaaaa.jpg',
     tags: ['Sede Principal', 'Canchas de Arena'],
   },
@@ -199,13 +199,6 @@ function VenuesPage() {
               >
                 <Phone className="w-5 h-5" />
                 +57 311 305 7249
-              </a>
-              <a
-                href="tel:+573175993837"
-                className="inline-flex items-center justify-center gap-2 border-2 border-slate-600 text-slate-400 font-display font-bold uppercase tracking-wide px-8 py-4 hover:border-primary-500 hover:text-primary-400 active:scale-95 transition-all"
-              >
-                <Phone className="w-5 h-5" />
-                +57 317 599 3837
               </a>
             </div>
           </motion.div>

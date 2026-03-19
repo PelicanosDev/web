@@ -1,23 +1,17 @@
 import { useEffect, useState } from 'react';
-import { Users, TrendingUp, DollarSign, Activity } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Users, TrendingUp, DollarSign, Activity, Calendar } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import axios from '@/api/axios';
 
 function AdminDashboard() {
-  const [stats, setStats] = useState({
-    totalMembers: 0,
-    activeMembers: 0,
-    monthlyRevenue: 0,
-    memberGrowth: '+0%',
-  });
+  const [stats, setStats] = useState({ totalMembers: 0, activeMembers: 0, monthlyRevenue: 0, memberGrowth: '+0%' });
   const [growthData, setGrowthData] = useState([]);
   const [recentMembers, setRecentMembers] = useState([]);
   const [upcomingEvents, setUpcomingEvents] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchDashboardData();
-  }, []);
+  useEffect(() => { fetchDashboardData(); }, []);
 
   const fetchDashboardData = async () => {
     try {
@@ -27,7 +21,6 @@ function AdminDashboard() {
         axios.get('/admin/dashboard/recent'),
         axios.get('/admin/dashboard/events'),
       ]);
-
       setStats(statsRes.data.data);
       setGrowthData(growthRes.data.data);
       setRecentMembers(membersRes.data.data);
@@ -40,191 +33,184 @@ function AdminDashboard() {
   };
 
   const statCards = [
-    {
-      title: 'Total Miembros',
-      value: stats.totalMembers,
-      change: stats.memberGrowth,
-      icon: Users,
-      color: 'bg-blue-500',
-    },
-    {
-      title: 'Jugadores Activos',
-      value: stats.activeMembers,
-      change: '+5%',
-      icon: Activity,
-      color: 'bg-green-500',
-    },
-    {
-      title: 'Ingresos Mensuales',
-      value: `$${(stats.monthlyRevenue / 1000).toFixed(0)}K`,
-      change: '+8%',
-      icon: DollarSign,
-      color: 'bg-primary-500',
-    },
-    {
-      title: 'Tasa de Crecimiento',
-      value: stats.memberGrowth,
-      change: '+12%',
-      icon: TrendingUp,
-      color: 'bg-purple-500',
-    },
+    { title: 'Total Miembros', value: stats.totalMembers, change: stats.memberGrowth, icon: Users, dark: true },
+    { title: 'Jugadores Activos', value: stats.activeMembers, change: '+5%', icon: Activity, dark: false },
+    { title: 'Ingresos Mensuales', value: `$${(stats.monthlyRevenue / 1000).toFixed(0)}K`, change: '+8%', icon: DollarSign, dark: true },
+    { title: 'Tasa de Crecimiento', value: stats.memberGrowth, change: '+12%', icon: TrendingUp, dark: false },
   ];
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500"></div>
+        <div className="w-10 h-10 border-4 border-slate-200 border-t-primary-500 rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div>
-        <h1 className="text-3xl font-display font-bold text-gray-900">Bienvenido de nuevo, Admin</h1>
-        <p className="text-gray-600">Esto es lo que está pasando en el club hoy.</p>
+        <span className="inline-block text-primary-600 text-xs font-bold uppercase tracking-widest bg-primary-50 px-3 py-1.5 mb-3">
+          Panel de Control
+        </span>
+        <h1 className="font-display font-black uppercase text-slate-900 text-3xl leading-none">
+          Dashboard
+        </h1>
+        <p className="text-slate-500 mt-1">Resumen de actividad del club</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {statCards.map((stat) => {
-          const Icon = stat.icon;
-          return (
-            <div key={stat.title} className="card">
-              <div className="flex items-center justify-between mb-4">
-                <div className={`w-12 h-12 ${stat.color} rounded-lg flex items-center justify-center`}>
-                  <Icon className="w-6 h-6 text-white" />
-                </div>
-                <span className={`text-sm font-semibold ${
-                  stat.change.startsWith('+') ? 'text-green-600' : 'text-red-600'
-                }`}>
-                  {stat.change}
-                </span>
+      {/* Stat Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {statCards.map(({ title, value, change, icon: Icon, dark }) => (
+          <div
+            key={title}
+            className={`p-6 border-l-4 border-primary-500 ${dark ? 'bg-slate-900' : 'bg-white border border-slate-100 shadow-sm'}`}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className={`w-10 h-10 bg-primary-500 flex items-center justify-center`}>
+                <Icon className="w-5 h-5 text-white" />
               </div>
-              <h3 className="text-gray-600 text-sm font-medium mb-1">{stat.title}</h3>
-              <p className="text-3xl font-bold text-gray-900">{stat.value}</p>
+              <span className={`text-xs font-bold ${change.startsWith('+') ? 'text-green-500' : 'text-red-500'}`}>
+                {change}
+              </span>
             </div>
-          );
-        })}
+            <p className={`text-xs font-bold uppercase tracking-widest mb-1 ${dark ? 'text-slate-400' : 'text-slate-500'}`}>
+              {title}
+            </p>
+            <p className={`font-display font-black text-3xl leading-none ${dark ? 'text-primary-400' : 'text-slate-900'}`}>
+              {value}
+            </p>
+          </div>
+        ))}
       </div>
 
+      {/* Chart + Events */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 card">
-          <h2 className="text-xl font-display font-bold text-gray-900 mb-6">
-            Membership Growth
+        <div className="lg:col-span-2 bg-white border border-slate-100 shadow-sm p-6">
+          <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">Crecimiento</p>
+          <h2 className="font-display font-black uppercase text-slate-900 text-xl mb-1">
+            Nuevos Miembros
           </h2>
-          <p className="text-sm text-gray-600 mb-4">
-            New member registrations over the last 6 months
-          </p>
-          <div className="h-80">
+          <p className="text-sm text-slate-500 mb-6">Inscripciones de los últimos 6 meses</p>
+          <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={growthData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip />
-                <Line 
-                  type="monotone" 
-                  dataKey="count" 
-                  stroke="#f97316" 
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#94a3b8' }} />
+                <YAxis tick={{ fontSize: 12, fill: '#94a3b8' }} />
+                <Tooltip
+                  contentStyle={{ border: '1px solid #e2e8f0', borderRadius: 0, fontSize: 12 }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="count"
+                  stroke="#f97316"
                   strokeWidth={3}
-                  dot={{ fill: '#f97316', r: 6 }}
+                  dot={{ fill: '#f97316', r: 5, strokeWidth: 0 }}
+                  activeDot={{ r: 7 }}
                 />
               </LineChart>
             </ResponsiveContainer>
           </div>
-          <div className="mt-4 flex items-center justify-center gap-2">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-primary-500 rounded-full"></div>
-              <span className="text-sm text-gray-600">New Members</span>
-            </div>
-          </div>
         </div>
 
-        <div className="card">
-          <h2 className="text-xl font-display font-bold text-gray-900 mb-6">
-            Upcoming Events
+        <div className="bg-white border border-slate-100 shadow-sm p-6">
+          <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">Agenda</p>
+          <h2 className="font-display font-black uppercase text-slate-900 text-xl mb-6">
+            Próximos Eventos
           </h2>
           <div className="space-y-4">
             {upcomingEvents.length > 0 ? (
               upcomingEvents.map((event) => (
                 <div key={event.id} className="flex gap-4">
-                  <div className="flex-shrink-0 w-14 h-14 bg-primary-100 rounded-lg flex flex-col items-center justify-center">
-                    <span className="text-xs font-semibold text-primary-500">
-                      {new Date(event.date).toLocaleDateString('en-US', { month: 'short' }).toUpperCase()}
+                  <div className="flex-shrink-0 w-12 h-12 bg-slate-900 flex flex-col items-center justify-center">
+                    <span className="text-xs font-bold text-primary-400 uppercase leading-none">
+                      {new Date(event.date).toLocaleDateString('es-ES', { month: 'short' })}
                     </span>
-                    <span className="text-lg font-bold text-primary-500">
+                    <span className="font-display font-black text-white text-lg leading-none">
                       {new Date(event.date).getDate()}
                     </span>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-gray-900 truncate">{event.title}</h3>
-                    <p className="text-sm text-gray-600">{event.time}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Users className="w-4 h-4 text-gray-400" />
-                      <span className="text-xs text-gray-500">{event.participants} participants</span>
+                    <p className="font-bold text-slate-900 truncate">{event.title}</p>
+                    <p className="text-xs text-slate-500">{event.time}</p>
+                    <div className="flex items-center gap-1 mt-1">
+                      <Users className="w-3 h-3 text-slate-400" />
+                      <span className="text-xs text-slate-400">{event.participants} participantes</span>
                     </div>
                   </div>
                 </div>
               ))
             ) : (
-              <p className="text-gray-500 text-center py-8">No upcoming events</p>
+              <div className="text-center py-8">
+                <Calendar className="w-10 h-10 text-slate-200 mx-auto mb-2" />
+                <p className="text-slate-400 text-sm">Sin eventos próximos</p>
+              </div>
             )}
           </div>
         </div>
       </div>
 
-      <div className="card">
-        <h2 className="text-xl font-display font-bold text-gray-900 mb-6">
-          Recent Registrations
+      {/* Recent Members table */}
+      <div className="bg-white border border-slate-100 shadow-sm p-6">
+        <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">Actividad</p>
+        <h2 className="font-display font-black uppercase text-slate-900 text-xl mb-6">
+          Últimas Inscripciones
         </h2>
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full min-w-[560px]">
             <thead>
-              <tr className="border-b border-gray-200">
-                <th className="text-left py-3 px-4 font-semibold text-gray-700">Member</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-700">Role</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-700">Status</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-700">Action</th>
+              <tr className="border-b-2 border-slate-100">
+                <th className="text-left py-3 px-4 text-xs font-bold uppercase tracking-widest text-slate-400">Miembro</th>
+                <th className="text-left py-3 px-4 text-xs font-bold uppercase tracking-widest text-slate-400">Rol</th>
+                <th className="text-left py-3 px-4 text-xs font-bold uppercase tracking-widest text-slate-400">Estado</th>
+                <th className="text-left py-3 px-4 text-xs font-bold uppercase tracking-widest text-slate-400">Acción</th>
               </tr>
             </thead>
             <tbody>
               {recentMembers.length > 0 ? (
                 recentMembers.map((member) => (
-                  <tr key={member.id} className="border-b border-gray-100 hover:bg-gray-50">
+                  <tr key={member.id} className="border-b border-slate-50 hover:bg-slate-50">
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center">
-                          <span className="font-semibold text-primary-500">
+                        <div className="w-9 h-9 bg-primary-500 flex items-center justify-center flex-shrink-0">
+                          <span className="font-display font-bold text-white text-sm">
                             {member.name.split(' ').map(n => n[0]).join('')}
                           </span>
                         </div>
                         <div>
-                          <p className="font-medium text-gray-900">{member.name}</p>
-                          <p className="text-sm text-gray-500">{member.email}</p>
+                          <p className="font-bold text-slate-900 text-sm">{member.name}</p>
+                          <p className="text-xs text-slate-400">{member.email}</p>
                         </div>
                       </div>
                     </td>
                     <td className="py-3 px-4">
-                      <span className="text-gray-700">{member.role}</span>
+                      <span className="text-sm text-slate-600 font-medium capitalize">{member.role}</span>
                     </td>
                     <td className="py-3 px-4">
-                      <span className={`badge ${
-                        member.status === 'active' ? 'badge-success' : 'badge-warning'
+                      <span className={`px-2 py-1 text-xs font-bold uppercase tracking-widest ${
+                        member.status === 'active'
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-amber-100 text-amber-800'
                       }`}>
-                        {member.status}
+                        {member.status === 'active' ? 'Activo' : 'Inactivo'}
                       </span>
                     </td>
                     <td className="py-3 px-4">
-                      <button className="text-primary-500 hover:underline text-sm font-medium">
-                        View
-                      </button>
+                      <Link
+                        to={`/admin/members/${member.id}`}
+                        className="text-primary-500 hover:text-primary-700 text-sm font-bold uppercase tracking-wide transition-colors"
+                      >
+                        Ver
+                      </Link>
                     </td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan="4" className="py-8 text-center text-gray-500">
-                    No recent registrations
+                  <td colSpan="4" className="py-10 text-center text-slate-400 text-sm">
+                    Sin inscripciones recientes
                   </td>
                 </tr>
               )}

@@ -105,7 +105,7 @@ function MemberDetailPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500"></div>
+        <div className="w-10 h-10 border-4 border-slate-200 border-t-primary-500 rounded-full animate-spin" />
       </div>
     );
   }
@@ -113,9 +113,9 @@ function MemberDetailPage() {
   if (!member) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-500">Member not found</p>
+        <p className="text-slate-500">Miembro no encontrado</p>
         <Link to="/admin/members" className="text-primary-500 hover:underline mt-4 inline-block">
-          Back to Members
+          Volver a Miembros
         </Link>
       </div>
     );
@@ -126,49 +126,60 @@ function MemberDetailPage() {
 
   return (
     <div className="space-y-6">
-      <Link to="/admin/members" className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900">
-        <ArrowLeft className="w-5 h-5" />
-        Back to Members
+      <Link to="/admin/members" className="inline-flex items-center gap-2 text-slate-500 hover:text-slate-900 font-bold uppercase tracking-widest text-xs transition-colors">
+        <ArrowLeft className="w-4 h-4" />
+        Volver a Miembros
       </Link>
+
+      <div>
+        <span className="inline-block text-primary-600 text-xs font-bold uppercase tracking-widest bg-primary-50 px-3 py-1.5 mb-3">
+          Perfil de Miembro
+        </span>
+        <h1 className="font-display font-black uppercase text-slate-900 text-3xl leading-none">
+          {member.userId?.profile?.firstName} {member.userId?.profile?.lastName}
+        </h1>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-1">
-          <div className="card">
+          <div className="bg-white border border-slate-100 shadow-sm p-6">
             <div className="text-center mb-6">
-              <div className="w-24 h-24 rounded-full bg-primary-100 flex items-center justify-center mx-auto mb-4 overflow-hidden">
+              <div className="w-24 h-24 bg-primary-500 flex items-center justify-center mx-auto mb-4 overflow-hidden">
                 {member.userId?.profile?.avatar ? (
-                  <img 
-                    src={member.userId.profile.avatar} 
+                  <img
+                    src={member.userId.profile.avatar}
                     alt={`${member.userId.profile.firstName} ${member.userId.profile.lastName}`}
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <span className="text-3xl font-bold text-primary-500">
+                  <span className="text-3xl font-bold text-white">
                     {member.userId?.profile?.firstName?.[0]}{member.userId?.profile?.lastName?.[0]}
                   </span>
                 )}
               </div>
-              <h2 className="text-2xl font-display font-bold text-gray-900">
+              <h2 className="text-2xl font-display font-black uppercase text-slate-900">
                 {member.userId?.profile?.firstName} {member.userId?.profile?.lastName}
               </h2>
-              <p className="text-gray-600">{member.memberNumber}</p>
-              <span className={`badge mt-2 ${
-                member.membership?.status === 'active' ? 'badge-success' : 'badge-error'
+              <p className="text-slate-500">{member.memberNumber}</p>
+              <span className={`inline-block mt-2 px-2 py-1 text-xs font-bold uppercase tracking-widest ${
+                member.membership?.status === 'active'
+                  ? 'bg-green-100 text-green-800'
+                  : 'bg-red-100 text-red-800'
               }`}>
                 {member.membership?.status}
               </span>
             </div>
 
             <div className="space-y-4">
-              <div className="flex items-center gap-3 text-gray-600">
+              <div className="flex items-center gap-3 text-slate-500">
                 <Mail className="w-5 h-5" />
                 <span className="text-sm">{member.userId?.email}</span>
               </div>
-              <div className="flex items-center gap-3 text-gray-600">
+              <div className="flex items-center gap-3 text-slate-500">
                 <Phone className="w-5 h-5" />
                 <span className="text-sm">{member.userId?.profile?.phone || 'N/A'}</span>
               </div>
-              <div className="flex items-center gap-3 text-gray-600">
+              <div className="flex items-center gap-3 text-slate-500">
                 <Calendar className="w-5 h-5" />
                 <span className="text-sm">
                   Joined {new Date(member.createdAt).toLocaleDateString()}
@@ -176,20 +187,20 @@ function MemberDetailPage() {
               </div>
             </div>
 
-            <div className="mt-6 pt-6 border-t border-gray-200">
-              <h3 className="font-semibold text-gray-900 mb-3">Sport Profile</h3>
+            <div className="mt-6 pt-6 border-t border-slate-200">
+              <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4">Perfil Deportivo</p>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Position:</span>
-                  <span className="font-medium capitalize">{member.sportProfile?.position}</span>
+                  <span className="text-slate-500">Posición:</span>
+                  <span className="font-medium capitalize text-slate-900">{member.sportProfile?.position}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Experience:</span>
-                  <span className="font-medium capitalize">{member.sportProfile?.experience}</span>
+                  <span className="text-slate-500">Experiencia:</span>
+                  <span className="font-medium capitalize text-slate-900">{member.sportProfile?.experience}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Dominant Hand:</span>
-                  <span className="font-medium capitalize">{member.sportProfile?.dominantHand}</span>
+                  <span className="text-slate-500">Mano dominante:</span>
+                  <span className="font-medium capitalize text-slate-900">{member.sportProfile?.dominantHand}</span>
                 </div>
               </div>
             </div>
@@ -197,55 +208,55 @@ function MemberDetailPage() {
         </div>
 
         <div className="lg:col-span-2 space-y-6">
-          <div className="card">
+          <div className="bg-white border border-slate-100 shadow-sm p-6">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-display font-bold text-gray-900">Gamification</h3>
-              <button 
+              <h3 className="text-xl font-display font-black uppercase text-slate-900">Gamificación</h3>
+              <button
                 onClick={() => setShowBadgeModal(true)}
-                className="btn btn-primary btn-sm"
+                className="inline-flex items-center gap-2 bg-primary-500 text-white font-display font-bold uppercase tracking-wide px-3 py-2 hover:bg-primary-600 transition-all cursor-pointer text-sm"
               >
                 <Award className="w-4 h-4" />
-                Assign Badge
+                Asignar Insignia
               </button>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-              <div className="bg-gradient-to-br from-primary-500 to-primary-600 rounded-lg p-4 text-white">
-                <p className="text-sm opacity-90 mb-1">Level</p>
-                <p className="text-3xl font-bold">{member.gamification?.level || 1}</p>
+              <div className="bg-slate-900 p-4 border-l-4 border-primary-500">
+                <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">Nivel</p>
+                <p className="text-3xl font-display font-black text-primary-400">{member.gamification?.level || 1}</p>
               </div>
-              <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg p-4 text-white">
-                <p className="text-sm opacity-90 mb-1">Total XP</p>
-                <p className="text-3xl font-bold">{member.gamification?.xp || 0}</p>
+              <div className="bg-white border border-slate-100 shadow-sm p-4 border-l-4 border-sky-400">
+                <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">XP Total</p>
+                <p className="text-3xl font-display font-black text-sky-500">{member.gamification?.xp || 0}</p>
               </div>
-              <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg p-4 text-white">
-                <p className="text-sm opacity-90 mb-1">Badges</p>
-                <p className="text-3xl font-bold">{member.gamification?.badges?.length || 0}</p>
+              <div className="bg-white border border-slate-100 shadow-sm p-4 border-l-4 border-purple-400">
+                <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">Insignias</p>
+                <p className="text-3xl font-display font-black text-purple-500">{member.gamification?.badges?.length || 0}</p>
               </div>
             </div>
 
             {member.gamification?.badges?.length > 0 && (
               <div>
-                <h4 className="font-semibold text-gray-900 mb-3">Earned Badges</h4>
+                <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4">Insignias Ganadas</p>
                 <div className="flex flex-wrap gap-3">
                   {member.gamification.badges.map((badge, index) => {
                     const badgeData = badge.badgeId || badge;
                     const rarityColors = {
-                      common: 'bg-gray-100',
-                      rare: 'bg-blue-100',
-                      epic: 'bg-purple-100',
-                      legendary: 'bg-yellow-100'
+                      common: 'bg-slate-50 border-2 border-slate-300',
+                      rare: 'bg-sky-50 border-2 border-sky-300',
+                      epic: 'bg-purple-50 border-2 border-purple-300',
+                      legendary: 'bg-amber-50 border-2 border-amber-400'
                     };
-                    const bgColor = rarityColors[badgeData?.rarity] || 'bg-gray-100';
-                    
+                    const bgColor = rarityColors[badgeData?.rarity] || rarityColors.common;
+
                     return (
-                      <div 
-                        key={index} 
+                      <div
+                        key={index}
                         onClick={() => {
                           setSelectedBadge(badgeData);
                           setShowBadgeInfoModal(true);
                         }}
-                        className={`w-16 h-16 ${bgColor} rounded-full flex items-center justify-center shadow-md hover:scale-110 transition-transform cursor-pointer`}
+                        className={`w-16 h-16 ${bgColor} flex items-center justify-center hover:scale-110 transition-transform cursor-pointer`}
                         title={badgeData?.name || 'Badge'}
                       >
                         <span className="text-2xl">{badgeData?.icon || '🏆'}</span>
@@ -257,10 +268,13 @@ function MemberDetailPage() {
             )}
           </div>
 
-          <div className="card">
+          <div className="bg-white border border-slate-100 shadow-sm p-6">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-display font-bold text-gray-900">Physical Records</h3>
-              <button onClick={() => setShowRecordModal(true)} className="btn btn-primary btn-sm">
+              <h3 className="text-xl font-display font-black uppercase text-slate-900">Récords Físicos</h3>
+              <button
+                onClick={() => setShowRecordModal(true)}
+                className="inline-flex items-center gap-2 bg-primary-500 text-white font-display font-bold uppercase tracking-wide px-3 py-2 hover:bg-primary-600 transition-all cursor-pointer text-sm"
+              >
                 <Plus className="w-4 h-4" />
                 Agregar Récord
               </button>
@@ -269,49 +283,47 @@ function MemberDetailPage() {
             {member.physicalRecords && member.physicalRecords.length > 0 ? (
               <div className="space-y-4">
                 {member.physicalRecords.slice().reverse().map((record, index) => (
-                  <div key={index} className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <div key={index} className="p-4 bg-slate-50 border border-slate-200">
                     <div className="flex justify-between items-start mb-2">
                       <div>
-                        <h4 className="font-semibold text-gray-900">{record.exercise}</h4>
-                        <p className="text-sm text-gray-500">
-                          {new Date(record.date).toLocaleDateString('es-ES', { 
-                            year: 'numeric', 
-                            month: 'long', 
-                            day: 'numeric' 
+                        <h4 className="font-bold text-slate-900">{record.exercise}</h4>
+                        <p className="text-sm text-slate-500">
+                          {new Date(record.date).toLocaleDateString('es-ES', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
                           })}
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="text-2xl font-bold text-primary-600">{record.result}</p>
-                        <p className="text-sm text-gray-600">{record.unit}</p>
+                        <p className="text-2xl font-display font-black text-primary-600">{record.result}</p>
+                        <p className="text-sm text-slate-500">{record.unit}</p>
                       </div>
                     </div>
-                    <div className="flex gap-4 text-sm text-gray-600">
+                    <div className="flex gap-4 text-sm text-slate-500">
                       <span>Repeticiones: {record.times}</span>
-                      {record.notes && <span className="text-gray-500">• {record.notes}</span>}
+                      {record.notes && <span className="text-slate-400">• {record.notes}</span>}
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-gray-500 text-center py-8">No hay récords físicos registrados</p>
+              <p className="text-slate-500 text-center py-8">No hay récords físicos registrados</p>
             )}
           </div>
 
-          <div className="card">
-            <h3 className="text-xl font-display font-bold text-gray-900 mb-6">Attendance</h3>
+          <div className="bg-white border border-slate-100 shadow-sm p-6">
+            <h3 className="text-xl font-display font-black uppercase text-slate-900 mb-6">Asistencia</h3>
             <div className="flex items-center justify-center">
-              <div className="text-center">
-                <div className="w-32 h-32 rounded-full border-8 border-green-500 flex items-center justify-center mb-4">
-                  <span className="text-4xl font-bold text-gray-900">
-                    {member.attendance?.length > 0 
-                      ? Math.round((member.attendance.filter(a => a.present).length / member.attendance.length) * 100)
-                      : 0}%
-                  </span>
-                </div>
-                <p className="text-gray-600">Attendance Rate</p>
-                <p className="text-sm text-gray-500 mt-1">
-                  {member.attendance?.filter(a => a.present).length || 0} of {member.attendance?.length || 0} sessions
+              <div className="bg-slate-900 p-8 border-l-4 border-primary-500 text-center">
+                <p className="font-display font-black text-5xl text-primary-400">
+                  {member.attendance?.length > 0
+                    ? Math.round((member.attendance.filter(a => a.present).length / member.attendance.length) * 100)
+                    : 0}%
+                </p>
+                <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mt-2">Tasa de Asistencia</p>
+                <p className="text-sm text-slate-500 mt-1">
+                  {member.attendance?.filter(a => a.present).length || 0} de {member.attendance?.length || 0} sesiones
                 </p>
               </div>
             </div>
@@ -326,7 +338,7 @@ function MemberDetailPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"
             onClick={() => setShowRecordModal(false)}
           >
             <motion.div
@@ -334,13 +346,13 @@ function MemberDetailPage() {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto"
+              className="bg-white shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto"
             >
-              <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-                <h2 className="text-xl font-display font-bold text-gray-900">Agregar Récord Físico</h2>
+              <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
+                <h2 className="text-xl font-display font-black uppercase text-slate-900">Agregar Récord Físico</h2>
                 <button
                   onClick={() => setShowRecordModal(false)}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="p-2 hover:bg-slate-100 transition-colors"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -348,18 +360,18 @@ function MemberDetailPage() {
 
               <form onSubmit={handleAddRecord} className="p-6 space-y-4">
                 <div>
-                  <label className="label">Ejercicio *</label>
+                  <label className="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Ejercicio *</label>
                   <select
                     value={recordForm.exerciseId}
                     onChange={(e) => {
                       const exercise = exercises.find(ex => ex._id === e.target.value);
-                      setRecordForm({ 
-                        ...recordForm, 
+                      setRecordForm({
+                        ...recordForm,
                         exerciseId: e.target.value,
                         unit: exercise ? exercise.defaultUnit : 'cm'
                       });
                     }}
-                    className="input"
+                    className="w-full px-4 py-3 border-2 border-slate-200 focus:border-primary-500 outline-none transition-colors text-slate-900 bg-white"
                     required
                   >
                     <option value="">Selecciona un ejercicio</option>
@@ -373,23 +385,23 @@ function MemberDetailPage() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="label">Resultado *</label>
+                    <label className="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Resultado *</label>
                     <input
                       type="number"
                       step="0.01"
                       value={recordForm.result}
                       onChange={(e) => setRecordForm({ ...recordForm, result: e.target.value })}
-                      className="input"
+                      className="w-full px-4 py-3 border-2 border-slate-200 focus:border-primary-500 outline-none transition-colors text-slate-900 bg-white"
                       placeholder="0.00"
                       required
                     />
                   </div>
                   <div>
-                    <label className="label">Unidad de Medida *</label>
+                    <label className="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Unidad de Medida *</label>
                     <select
                       value={recordForm.unit}
                       onChange={(e) => setRecordForm({ ...recordForm, unit: e.target.value })}
-                      className="input"
+                      className="w-full px-4 py-3 border-2 border-slate-200 focus:border-primary-500 outline-none transition-colors text-slate-900 bg-white"
                       required
                     >
                       <option value="cm">Centímetros (cm)</option>
@@ -404,24 +416,24 @@ function MemberDetailPage() {
                 </div>
 
                 <div>
-                  <label className="label">Número de Repeticiones</label>
+                  <label className="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Número de Repeticiones</label>
                   <input
                     type="number"
                     min="1"
                     value={recordForm.times}
                     onChange={(e) => setRecordForm({ ...recordForm, times: e.target.value })}
-                    className="input"
+                    className="w-full px-4 py-3 border-2 border-slate-200 focus:border-primary-500 outline-none transition-colors text-slate-900 bg-white"
                     placeholder="1"
                   />
-                  <p className="text-xs text-gray-500 mt-1">¿Cuántas veces se realizó el ejercicio?</p>
+                  <p className="text-xs text-slate-400 mt-1">¿Cuántas veces se realizó el ejercicio?</p>
                 </div>
 
                 <div>
-                  <label className="label">Notas (opcional)</label>
+                  <label className="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Notas (opcional)</label>
                   <textarea
                     value={recordForm.notes}
                     onChange={(e) => setRecordForm({ ...recordForm, notes: e.target.value })}
-                    className="input resize-none"
+                    className="w-full px-4 py-3 border-2 border-slate-200 focus:border-primary-500 outline-none transition-colors text-slate-900 bg-white resize-none"
                     rows={3}
                     placeholder="Observaciones adicionales..."
                   />
@@ -431,14 +443,14 @@ function MemberDetailPage() {
                   <button
                     type="button"
                     onClick={() => setShowRecordModal(false)}
-                    className="btn btn-secondary flex-1"
+                    className="inline-flex items-center justify-center gap-2 border-2 border-slate-200 text-slate-700 font-display font-bold uppercase tracking-wide px-5 py-2.5 hover:border-slate-400 transition-all cursor-pointer flex-1"
                     disabled={submitting}
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
-                    className="btn btn-primary flex-1"
+                    className="inline-flex items-center justify-center gap-2 bg-primary-500 text-white font-display font-bold uppercase tracking-wide px-5 py-2.5 hover:bg-primary-600 active:scale-95 transition-all cursor-pointer flex-1"
                     disabled={submitting}
                   >
                     {submitting ? 'Guardando...' : 'Guardar Récord'}
@@ -457,7 +469,7 @@ function MemberDetailPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"
             onClick={() => setShowBadgeModal(false)}
           >
             <motion.div
@@ -465,20 +477,18 @@ function MemberDetailPage() {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto"
+              className="bg-white shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto"
             >
-              <div className="p-6 border-b sticky top-0 bg-white z-10">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-2xl font-display font-bold text-gray-900">
-                    Asignar Insignia
-                  </h2>
-                  <button
-                    onClick={() => setShowBadgeModal(false)}
-                    className="p-2 hover:bg-gray-100 rounded-lg"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
+              <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between z-10">
+                <h2 className="text-2xl font-display font-black uppercase text-slate-900">
+                  Asignar Insignia
+                </h2>
+                <button
+                  onClick={() => setShowBadgeModal(false)}
+                  className="p-2 hover:bg-slate-100 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
               </div>
 
               <div className="p-6">
@@ -487,12 +497,12 @@ function MemberDetailPage() {
                     const isAssigned = member?.gamification?.badges?.some(
                       b => b.badgeId?._id === badge._id || b.badgeId === badge._id
                     );
-                    
-                    const rarityColors = {
-                      common: 'bg-gray-100 text-gray-800 border-gray-300',
-                      rare: 'bg-blue-100 text-blue-800 border-blue-300',
-                      epic: 'bg-purple-100 text-purple-800 border-purple-300',
-                      legendary: 'bg-yellow-100 text-yellow-800 border-yellow-300'
+
+                    const rarityClasses = {
+                      common: 'bg-slate-50 border-2 border-slate-300',
+                      rare: 'bg-sky-50 border-2 border-sky-300',
+                      epic: 'bg-purple-50 border-2 border-purple-300',
+                      legendary: 'bg-amber-50 border-2 border-amber-400'
                     };
 
                     return (
@@ -500,25 +510,25 @@ function MemberDetailPage() {
                         key={badge._id}
                         onClick={() => !isAssigned && handleAssignBadge(badge._id)}
                         disabled={isAssigned}
-                        className={`text-left p-4 rounded-xl border-2 transition-all ${
-                          isAssigned 
-                            ? 'opacity-50 cursor-not-allowed bg-gray-50' 
-                            : `${rarityColors[badge.rarity]} hover:shadow-lg hover:-translate-y-1 cursor-pointer`
+                        className={`text-left p-4 transition-all ${
+                          isAssigned
+                            ? 'opacity-50 cursor-not-allowed bg-slate-50 border-2 border-slate-200'
+                            : `${rarityClasses[badge.rarity] || rarityClasses.common} hover:shadow-lg hover:-translate-y-1 cursor-pointer`
                         }`}
                       >
                         <div className="flex items-start gap-3">
                           <div className="text-4xl">{badge.icon}</div>
                           <div className="flex-1 min-w-0">
-                            <h3 className="font-bold mb-1 flex items-center gap-2">
+                            <h3 className="font-bold mb-1 flex items-center gap-2 text-slate-900">
                               {badge.name}
                               {isAssigned && (
-                                <span className="text-xs bg-green-500 text-white px-2 py-0.5 rounded-full">
+                                <span className="text-xs bg-green-500 text-white px-2 py-0.5 font-bold uppercase tracking-widest">
                                   Asignada
                                 </span>
                               )}
                             </h3>
-                            <p className="text-sm opacity-80 mb-2">{badge.description}</p>
-                            <div className="flex items-center justify-between text-xs">
+                            <p className="text-sm text-slate-500 mb-2">{badge.description}</p>
+                            <div className="flex items-center justify-between text-xs text-slate-500">
                               <span className="capitalize">{badge.category}</span>
                               <span className="font-semibold">+{badge.xpReward} XP</span>
                             </div>
@@ -531,9 +541,9 @@ function MemberDetailPage() {
 
                 {availableBadges.length === 0 && (
                   <div className="text-center py-12">
-                    <Award className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                    <p className="text-gray-500">No hay insignias disponibles</p>
-                    <p className="text-sm text-gray-400 mt-2">Crea insignias desde la página de Badges</p>
+                    <Award className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+                    <p className="text-slate-500">No hay insignias disponibles</p>
+                    <p className="text-sm text-slate-400 mt-2">Crea insignias desde la página de Badges</p>
                   </div>
                 )}
               </div>
@@ -549,7 +559,7 @@ function MemberDetailPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"
             onClick={() => setShowBadgeInfoModal(false)}
           >
             <motion.div
@@ -557,24 +567,19 @@ function MemberDetailPage() {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-2xl max-w-md w-full overflow-hidden shadow-2xl"
+              className="bg-white shadow-2xl max-w-md w-full overflow-hidden"
             >
-              {/* Header con color según rareza */}
-              <div className={`p-6 text-center ${
-                selectedBadge.rarity === 'legendary' ? 'bg-gradient-to-br from-yellow-400 to-orange-500' :
-                selectedBadge.rarity === 'epic' ? 'bg-gradient-to-br from-purple-500 to-pink-500' :
-                selectedBadge.rarity === 'rare' ? 'bg-gradient-to-br from-blue-500 to-cyan-500' :
-                'bg-gradient-to-br from-gray-400 to-gray-500'
-              } text-white relative`}>
+              {/* Header */}
+              <div className="bg-slate-900 p-8 text-center border-b-4 border-primary-500 relative">
                 <button
                   onClick={() => setShowBadgeInfoModal(false)}
-                  className="absolute top-4 right-4 p-1 hover:bg-white/20 rounded-lg transition-colors"
+                  className="absolute top-4 right-4 p-1 hover:bg-white/20 transition-colors"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-5 h-5 text-white" />
                 </button>
-                <div className="text-7xl mb-4">{selectedBadge.icon}</div>
-                <h2 className="text-2xl font-display font-bold mb-2">{selectedBadge.name}</h2>
-                <span className="inline-block px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-sm font-semibold capitalize">
+                <p className="text-primary-400 font-display font-black text-6xl mb-4">{selectedBadge.icon}</p>
+                <h2 className="font-display font-black uppercase text-white text-2xl">{selectedBadge.name}</h2>
+                <span className="inline-block mt-2 px-2 py-1 text-xs font-bold uppercase tracking-widest bg-white/20 text-white capitalize">
                   {selectedBadge.rarity}
                 </span>
               </div>
@@ -582,14 +587,14 @@ function MemberDetailPage() {
               {/* Contenido */}
               <div className="p-6 space-y-4">
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-500 uppercase mb-2">Descripción</h3>
-                  <p className="text-gray-700">{selectedBadge.description}</p>
+                  <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Descripción</p>
+                  <p className="text-slate-700">{selectedBadge.description}</p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-gray-50 rounded-lg p-3">
-                    <p className="text-xs text-gray-500 mb-1">Categoría</p>
-                    <p className="font-semibold text-gray-900 capitalize flex items-center gap-1">
+                  <div className="bg-slate-50 border border-slate-100 p-3">
+                    <p className="text-xs text-slate-400 mb-1">Categoría</p>
+                    <p className="font-bold text-slate-900 capitalize flex items-center gap-1">
                       {selectedBadge.category === 'attendance' && '📅'}
                       {selectedBadge.category === 'performance' && '⚡'}
                       {selectedBadge.category === 'achievement' && '🏆'}
@@ -597,16 +602,16 @@ function MemberDetailPage() {
                       {selectedBadge.category}
                     </p>
                   </div>
-                  <div className="bg-primary-50 rounded-lg p-3">
-                    <p className="text-xs text-gray-500 mb-1">Recompensa</p>
+                  <div className="bg-primary-50 border border-primary-100 p-3">
+                    <p className="text-xs text-slate-400 mb-1">Recompensa</p>
                     <p className="font-bold text-primary-600 text-lg">+{selectedBadge.xpReward} XP</p>
                   </div>
                 </div>
 
                 {selectedBadge.criteria?.description && (
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                    <p className="text-xs text-blue-600 font-semibold mb-1">Criterio</p>
-                    <p className="text-sm text-blue-900">{selectedBadge.criteria.description}</p>
+                  <div className="bg-sky-50 border border-sky-200 p-3">
+                    <p className="text-xs text-sky-600 font-semibold mb-1">Criterio</p>
+                    <p className="text-sm text-sky-900">{selectedBadge.criteria.description}</p>
                   </div>
                 )}
               </div>

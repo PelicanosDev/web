@@ -1,5 +1,18 @@
 const GalleryItem = require('../models/GalleryItem');
+const Member = require('../models/Member');
 const { uploadImage, deleteImage } = require('../config/cloudinary');
+
+// Enriches comments with memberId (null if user has no Member profile)
+const enrichCommentsWithMemberId = async (comments) => {
+  const userIds = comments.map(c => c.user?._id).filter(Boolean);
+  const members = await Member.find({ userId: { $in: userIds } }, '_id userId');
+  const userToMember = {};
+  members.forEach(m => { userToMember[m.userId.toString()] = m._id; });
+  return comments.map(c => ({
+    ...c.toObject(),
+    memberId: userToMember[c.user?._id?.toString()] || null,
+  }));
+};
 
 const getAllGalleryItems = async (req, res, next) => {
   try {
@@ -308,9 +321,10 @@ const addComment = async (req, res, next) => {
         select: 'profile.firstName profile.lastName profile.avatar'
       });
 
+    const enriched = await enrichCommentsWithMemberId(updatedItem.comments);
     res.status(201).json({
       success: true,
-      data: updatedItem.comments
+      data: enriched
     });
   } catch (error) {
     next(error);
@@ -332,9 +346,10 @@ const getComments = async (req, res, next) => {
       });
     }
 
+    const enriched = await enrichCommentsWithMemberId(item.comments);
     res.status(200).json({
       success: true,
-      data: item.comments
+      data: enriched
     });
   } catch (error) {
     next(error);

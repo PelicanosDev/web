@@ -16,6 +16,7 @@ const galleryRoutes = require('./routes/galleryRoutes');
 const badgeRoutes = require('./routes/badgeRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
 const exerciseRoutes = require('./routes/exerciseRoutes');
+const publicMemberRoutes = require('./routes/publicMemberRoutes');
 
 const app = express();
 
@@ -67,6 +68,7 @@ app.get('/api/health', (req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/admin/members', memberRoutes);
+app.use('/api/members', publicMemberRoutes);
 app.use('/api/member', memberProfileRoutes);
 app.use('/api/tournaments', tournamentRoutes);
 app.use('/api/admin/tournaments', tournamentRoutes);

@@ -420,9 +420,76 @@ const addBulkPhysicalRecords = async (req, res, next) => {
   }
 };
 
+const getPublicMemberById = async (req, res, next) => {
+  try {
+    const populate = [
+      { path: 'userId', select: 'profile.firstName profile.lastName profile.avatar profile.gender profile.dateOfBirth' },
+      { path: 'gamification.badges.badgeId', select: 'name description icon rarity category' },
+    ];
+
+    // Accept either Member._id or User._id (for comment author links)
+    let member = await Member.findById(req.params.id).populate(populate);
+    if (!member) {
+      member = await Member.findOne({ userId: req.params.id }).populate(populate);
+    }
+    if (!member) {
+      return res.status(404).json({ success: false, message: 'Member not found' });
+    }
+
+    // Compute attendance stats
+    const totalSessions = member.attendance.length;
+    const presentSessions = member.attendance.filter(a => a.present).length;
+    const attendanceRate = totalSessions > 0 ? Math.round((presentSessions / totalSessions) * 100) : 0;
+
+    // Matches stats
+    const totalMatches = member.matches.length;
+    const wins = member.matches.filter(m => m.result === 'win').length;
+    const losses = member.matches.filter(m => m.result === 'loss').length;
+
+    // Latest physical record per exercise (most recent result for each exercise name)
+    const latestByExercise = {};
+    member.physicalRecords.forEach(r => {
+      const key = r.exercise;
+      if (!latestByExercise[key] || new Date(r.date) > new Date(latestByExercise[key].date)) {
+        latestByExercise[key] = r;
+      }
+    });
+    const latestRecords = Object.values(latestByExercise).slice(0, 6);
+
+    const publicData = {
+      _id: member._id,
+      memberNumber: member.memberNumber,
+      status: member.status,
+      userId: member.userId,
+      sportProfile: member.sportProfile,
+      additionalInfo: member.additionalInfo,
+      socialMedia: member.socialMedia,
+      gamification: {
+        level: member.gamification?.level,
+        xp: member.gamification?.xp,
+        badges: member.gamification?.badges?.filter(b => b.badgeId),
+        achievements: member.gamification?.achievements,
+      },
+      stats: {
+        attendanceRate,
+        totalSessions,
+        totalMatches,
+        wins,
+        losses,
+        physicalRecords: latestRecords,
+      },
+    };
+
+    res.status(200).json({ success: true, data: publicData });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getAllMembers,
   getMemberById,
+  getPublicMemberById,
   createMember,
   updateMember,
   deleteMember,

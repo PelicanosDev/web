@@ -53,7 +53,6 @@ function AdminEventsPage() {
 
   const handleDelete = async (id) => {
     if (!confirm('¿Estás seguro de eliminar este evento?')) return;
-    
     try {
       await axios.delete(`/admin/events/${id}`);
       fetchEvents();
@@ -103,13 +102,18 @@ function AdminEventsPage() {
 
   const getEventTypeColor = (type) => {
     const colors = {
-      training: 'bg-blue-100 text-blue-800',
+      training: 'bg-sky-100 text-sky-800',
       tournament: 'bg-purple-100 text-purple-800',
       social: 'bg-green-100 text-green-800',
       workshop: 'bg-orange-100 text-orange-800',
-      other: 'bg-gray-100 text-gray-800',
+      other: 'bg-slate-100 text-slate-800',
     };
     return colors[type] || colors.other;
+  };
+
+  const getEventTypeLabel = (type) => {
+    const labels = { training: 'Entrenamiento', tournament: 'Torneo', social: 'Social', workshop: 'Taller', other: 'Otro' };
+    return labels[type] || type;
   };
 
   const upcomingEvents = events.filter(e => new Date(e.date) >= new Date());
@@ -118,125 +122,120 @@ function AdminEventsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500"></div>
+        <div className="w-10 h-10 border-4 border-slate-200 border-t-primary-500 rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div className="space-y-8">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
         <div>
-          <h1 className="text-3xl font-display font-bold text-gray-900">Gestión de Eventos</h1>
-          <p className="text-gray-600">Crea y administra los eventos del club</p>
+          <span className="inline-block text-primary-600 text-xs font-bold uppercase tracking-widest bg-primary-50 px-3 py-1.5 mb-3">
+            Club Pelícanos
+          </span>
+          <h1 className="font-display font-black uppercase text-slate-900 text-3xl leading-none">
+            Gestión de Eventos
+          </h1>
+          <p className="text-slate-500 text-sm mt-1">Crea y administra los eventos del club</p>
         </div>
-        <button 
+        <button
           onClick={() => setShowModal(true)}
-          className="btn btn-primary"
+          className="inline-flex items-center gap-2 bg-primary-500 text-white font-display font-bold uppercase tracking-wide px-5 py-2.5 hover:bg-primary-600 active:scale-95 transition-all cursor-pointer"
         >
-          <Plus className="w-5 h-5" />
+          <Plus className="w-4 h-4" />
           Crear Evento
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="card bg-gradient-to-br from-blue-500 to-blue-600 text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm opacity-90 mb-1">PRÓXIMOS</p>
-              <p className="text-4xl font-bold">{upcomingEvents.length}</p>
-              <p className="text-sm opacity-75 mt-1">Eventos programados</p>
-            </div>
-            <Calendar className="w-12 h-12 opacity-20" />
-          </div>
+      {/* Stat Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-slate-900 p-6 border-l-4 border-primary-500">
+          <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">Próximos</p>
+          <p className="text-4xl font-display font-black text-primary-400">{upcomingEvents.length}</p>
+          <p className="text-xs text-slate-500 mt-1 uppercase tracking-wide">Eventos programados</p>
         </div>
-
-        <div className="card bg-gradient-to-br from-green-500 to-green-600 text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm opacity-90 mb-1">PÚBLICOS</p>
-              <p className="text-4xl font-bold">{events.filter(e => e.isPublic).length}</p>
-              <p className="text-sm opacity-75 mt-1">Visibles para todos</p>
-            </div>
-            <Users className="w-12 h-12 opacity-20" />
-          </div>
+        <div className="bg-slate-900 p-6 border-l-4 border-primary-500">
+          <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">Públicos</p>
+          <p className="text-4xl font-display font-black text-primary-400">{events.filter(e => e.isPublic).length}</p>
+          <p className="text-xs text-slate-500 mt-1 uppercase tracking-wide">Visibles para todos</p>
         </div>
-
-        <div className="card bg-gradient-to-br from-purple-500 to-purple-600 text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm opacity-90 mb-1">COMPLETADOS</p>
-              <p className="text-4xl font-bold">{pastEvents.length}</p>
-              <p className="text-sm opacity-75 mt-1">Eventos pasados</p>
-            </div>
-            <Calendar className="w-12 h-12 opacity-20" />
-          </div>
+        <div className="bg-slate-900 p-6 border-l-4 border-primary-500">
+          <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">Completados</p>
+          <p className="text-4xl font-display font-black text-primary-400">{pastEvents.length}</p>
+          <p className="text-xs text-slate-500 mt-1 uppercase tracking-wide">Eventos pasados</p>
         </div>
       </div>
 
-      <div className="space-y-6">
+      {/* Events List */}
+      <div className="space-y-8">
         {upcomingEvents.length > 0 && (
           <div>
-            <h2 className="text-xl font-display font-bold text-gray-900 mb-4">Eventos Próximos</h2>
+            <h2 className="font-display font-black uppercase text-slate-900 text-xl mb-4">
+              Eventos Próximos
+            </h2>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {upcomingEvents.map((event) => (
                 <motion.div
                   key={event._id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="card hover:shadow-xl transition-shadow"
+                  className="bg-white border border-slate-100 shadow-sm p-6 border-l-4 border-l-primary-500"
                 >
                   <div className="flex justify-between items-start mb-4">
                     <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className={`badge ${getEventTypeColor(event.type)}`}>
-                          {event.type}
+                      <div className="flex items-center gap-2 mb-2 flex-wrap">
+                        <span className={`px-2 py-1 text-xs font-bold uppercase tracking-widest ${getEventTypeColor(event.type)}`}>
+                          {getEventTypeLabel(event.type)}
                         </span>
                         {event.isPublic && (
-                          <span className="badge badge-info">Public</span>
+                          <span className="px-2 py-1 text-xs font-bold uppercase tracking-widest bg-slate-100 text-slate-600">
+                            Público
+                          </span>
                         )}
                       </div>
-                      <h3 className="text-xl font-display font-bold text-gray-900 mb-2">
+                      <h3 className="font-display font-black uppercase text-slate-900 text-lg leading-none mb-2">
                         {event.title}
                       </h3>
                       {event.description && (
-                        <p className="text-gray-600 text-sm mb-3">{event.description}</p>
+                        <p className="text-slate-500 text-sm mb-3">{event.description}</p>
                       )}
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-1 ml-2">
                       <button
                         onClick={() => handleEdit(event)}
-                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                        className="p-2 hover:bg-slate-100 transition-colors"
                       >
-                        <Edit className="w-4 h-4 text-gray-600" />
+                        <Edit className="w-4 h-4 text-slate-600" />
                       </button>
                       <button
                         onClick={() => handleDelete(event._id)}
-                        className="p-2 hover:bg-red-50 rounded-lg transition-colors"
+                        className="p-2 hover:bg-red-50 transition-colors"
                       >
-                        <Trash2 className="w-4 h-4 text-red-600" />
+                        <Trash2 className="w-4 h-4 text-red-500" />
                       </button>
                     </div>
                   </div>
 
-                  <div className="space-y-2 text-sm text-gray-600">
+                  <div className="space-y-2 text-sm text-slate-500">
                     <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4" />
-                      <span>{dayjs(event.date).format('MMMM D, YYYY')}</span>
+                      <Calendar className="w-4 h-4 text-slate-400" />
+                      <span>{dayjs(event.date).format('D [de] MMMM[,] YYYY')}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Clock className="w-4 h-4" />
+                      <Clock className="w-4 h-4 text-slate-400" />
                       <span>{dayjs(event.date).format('h:mm A')}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <MapPin className="w-4 h-4" />
+                      <MapPin className="w-4 h-4 text-slate-400" />
                       <span>{event.location}</span>
                     </div>
                     {event.maxParticipants && (
                       <div className="flex items-center gap-2">
-                        <Users className="w-4 h-4" />
+                        <Users className="w-4 h-4 text-slate-400" />
                         <span>
-                          {event.participants?.filter(p => p.status === 'confirmed').length || 0} / {event.maxParticipants} participants
+                          {event.participants?.filter(p => p.status === 'confirmed').length || 0} / {event.maxParticipants} participantes
                         </span>
                       </div>
                     )}
@@ -249,31 +248,31 @@ function AdminEventsPage() {
 
         {pastEvents.length > 0 && (
           <div>
-            <h2 className="text-xl font-display font-bold text-gray-900 mb-4">Eventos Pasados</h2>
+            <h2 className="font-display font-black uppercase text-slate-900 text-xl mb-4">
+              Eventos Pasados
+            </h2>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {pastEvents.slice(0, 4).map((event) => (
-                <div key={event._id} className="card opacity-75">
+                <div key={event._id} className="bg-white border border-slate-100 shadow-sm p-6 border-l-4 border-l-slate-300 opacity-75">
                   <div className="flex justify-between items-start mb-3">
                     <div>
-                      <span className={`badge ${getEventTypeColor(event.type)}`}>
-                        {event.type}
+                      <span className={`px-2 py-1 text-xs font-bold uppercase tracking-widest ${getEventTypeColor(event.type)}`}>
+                        {getEventTypeLabel(event.type)}
                       </span>
-                      <h3 className="text-lg font-semibold text-gray-900 mt-2">
+                      <h3 className="font-display font-bold uppercase text-slate-700 text-base mt-2">
                         {event.title}
                       </h3>
                     </div>
                     <button
                       onClick={() => handleDelete(event._id)}
-                      className="p-2 hover:bg-red-50 rounded-lg transition-colors"
+                      className="p-2 hover:bg-red-50 transition-colors"
                     >
-                      <Trash2 className="w-4 h-4 text-red-600" />
+                      <Trash2 className="w-4 h-4 text-red-500" />
                     </button>
                   </div>
-                  <div className="text-sm text-gray-600">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4" />
-                      <span>{dayjs(event.date).format('MMMM D, YYYY')}</span>
-                    </div>
+                  <div className="flex items-center gap-2 text-sm text-slate-400">
+                    <Calendar className="w-4 h-4" />
+                    <span>{dayjs(event.date).format('D [de] MMMM[,] YYYY')}</span>
                   </div>
                 </div>
               ))}
@@ -282,18 +281,22 @@ function AdminEventsPage() {
         )}
 
         {events.length === 0 && (
-          <div className="card text-center py-12">
-            <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">No hay eventos</h3>
-            <p className="text-gray-600 mb-4">Crea tu primer evento para comenzar</p>
-            <button onClick={() => setShowModal(true)} className="btn btn-primary">
-              <Plus className="w-5 h-5" />
+          <div className="bg-white border border-slate-100 shadow-sm p-6 text-center py-16">
+            <Calendar className="w-16 h-16 text-slate-200 mx-auto mb-4" />
+            <h3 className="font-display font-black uppercase text-slate-900 text-lg mb-2">Sin Eventos</h3>
+            <p className="text-slate-400 text-sm uppercase tracking-wide mb-6">Crea tu primer evento para comenzar</p>
+            <button
+              onClick={() => setShowModal(true)}
+              className="inline-flex items-center gap-2 bg-primary-500 text-white font-display font-bold uppercase tracking-wide px-5 py-2.5 hover:bg-primary-600 active:scale-95 transition-all cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
               Crear Evento
             </button>
           </div>
         )}
       </div>
 
+      {/* Modal */}
       <AnimatePresence>
         {showModal && (
           <motion.div
@@ -304,27 +307,36 @@ function AdminEventsPage() {
             onClick={handleCloseModal}
           >
             <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
+              initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
+              exit={{ scale: 0.95, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+              className="bg-white shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
             >
-              <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex justify-between items-center">
-                <h2 className="text-2xl font-display font-bold text-gray-900">
-                  {editingEvent ? 'Editar Evento' : 'Crear Nuevo Evento'}
-                </h2>
+              {/* Modal Header */}
+              <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center">
+                <div>
+                  <span className="inline-block text-primary-600 text-xs font-bold uppercase tracking-widest bg-primary-50 px-3 py-1 mb-2">
+                    {editingEvent ? 'Editando' : 'Nuevo'}
+                  </span>
+                  <h2 className="font-display font-black uppercase text-slate-900 text-xl leading-none">
+                    {editingEvent ? 'Editar Evento' : 'Crear Evento'}
+                  </h2>
+                </div>
                 <button
                   onClick={handleCloseModal}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="p-2 hover:bg-slate-100 transition-colors"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-5 h-5 text-slate-500" />
                 </button>
               </div>
 
-              <form onSubmit={handleSubmit} className="p-6 space-y-6">
+              <form onSubmit={handleSubmit} className="p-6 space-y-5">
+                {/* Title */}
                 <div>
-                  <label htmlFor="title" className="label">Título del Evento *</label>
+                  <label htmlFor="title" className="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">
+                    Título del Evento *
+                  </label>
                   <input
                     type="text"
                     id="title"
@@ -332,34 +344,40 @@ function AdminEventsPage() {
                     value={formData.title}
                     onChange={handleChange}
                     required
-                    className="input"
+                    className="w-full px-4 py-3 border-2 border-slate-200 focus:border-primary-500 outline-none transition-colors text-slate-900 bg-white"
                     placeholder="Torneo de Vóley Playa de Verano"
                   />
                 </div>
 
+                {/* Description */}
                 <div>
-                  <label htmlFor="description" className="label">Descripción</label>
+                  <label htmlFor="description" className="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">
+                    Descripción
+                  </label>
                   <textarea
                     id="description"
                     name="description"
                     value={formData.description}
                     onChange={handleChange}
                     rows={3}
-                    className="input resize-none"
+                    className="w-full px-4 py-3 border-2 border-slate-200 focus:border-primary-500 outline-none transition-colors text-slate-900 bg-white resize-none"
                     placeholder="Detalles e información del evento..."
                   />
                 </div>
 
+                {/* Type & Location */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label htmlFor="type" className="label">Tipo de Evento *</label>
+                    <label htmlFor="type" className="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">
+                      Tipo de Evento *
+                    </label>
                     <select
                       id="type"
                       name="type"
                       value={formData.type}
                       onChange={handleChange}
                       required
-                      className="input"
+                      className="w-full px-4 py-3 border-2 border-slate-200 focus:border-primary-500 outline-none transition-colors text-slate-900 bg-white"
                     >
                       <option value="training">Entrenamiento</option>
                       <option value="tournament">Torneo</option>
@@ -368,9 +386,10 @@ function AdminEventsPage() {
                       <option value="other">Otro</option>
                     </select>
                   </div>
-
                   <div>
-                    <label htmlFor="location" className="label">Ubicación *</label>
+                    <label htmlFor="location" className="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">
+                      Ubicación *
+                    </label>
                     <input
                       type="text"
                       id="location"
@@ -378,15 +397,18 @@ function AdminEventsPage() {
                       value={formData.location}
                       onChange={handleChange}
                       required
-                      className="input"
+                      className="w-full px-4 py-3 border-2 border-slate-200 focus:border-primary-500 outline-none transition-colors text-slate-900 bg-white"
                       placeholder="Playa Grande, Manizales"
                     />
                   </div>
                 </div>
 
+                {/* Dates */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label htmlFor="date" className="label">Fecha y Hora de Inicio *</label>
+                    <label htmlFor="date" className="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">
+                      Fecha y Hora de Inicio *
+                    </label>
                     <input
                       type="datetime-local"
                       id="date"
@@ -394,25 +416,29 @@ function AdminEventsPage() {
                       value={formData.date}
                       onChange={handleChange}
                       required
-                      className="input"
+                      className="w-full px-4 py-3 border-2 border-slate-200 focus:border-primary-500 outline-none transition-colors text-slate-900 bg-white"
                     />
                   </div>
-
                   <div>
-                    <label htmlFor="endDate" className="label">Fecha y Hora de Fin</label>
+                    <label htmlFor="endDate" className="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">
+                      Fecha y Hora de Fin
+                    </label>
                     <input
                       type="datetime-local"
                       id="endDate"
                       name="endDate"
                       value={formData.endDate}
                       onChange={handleChange}
-                      className="input"
+                      className="w-full px-4 py-3 border-2 border-slate-200 focus:border-primary-500 outline-none transition-colors text-slate-900 bg-white"
                     />
                   </div>
                 </div>
 
+                {/* Max Participants */}
                 <div>
-                  <label htmlFor="maxParticipants" className="label">Máximo de Participantes</label>
+                  <label htmlFor="maxParticipants" className="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">
+                    Máximo de Participantes
+                  </label>
                   <input
                     type="number"
                     id="maxParticipants"
@@ -420,11 +446,12 @@ function AdminEventsPage() {
                     value={formData.maxParticipants}
                     onChange={handleChange}
                     min="1"
-                    className="input"
+                    className="w-full px-4 py-3 border-2 border-slate-200 focus:border-primary-500 outline-none transition-colors text-slate-900 bg-white"
                     placeholder="Dejar vacío para ilimitado"
                   />
                 </div>
 
+                {/* Public toggle */}
                 <div className="flex items-center gap-3">
                   <input
                     type="checkbox"
@@ -432,22 +459,26 @@ function AdminEventsPage() {
                     name="isPublic"
                     checked={formData.isPublic}
                     onChange={handleChange}
-                    className="w-4 h-4 text-primary-500 rounded focus:ring-2 focus:ring-primary-200"
+                    className="w-4 h-4 text-primary-500 focus:ring-2 focus:ring-primary-200"
                   />
-                  <label htmlFor="isPublic" className="text-sm font-medium text-gray-700">
+                  <label htmlFor="isPublic" className="text-sm font-bold text-slate-600 uppercase tracking-wide">
                     Hacer este evento público (visible para todos los miembros)
                   </label>
                 </div>
 
-                <div className="flex gap-3 pt-4 border-t">
+                {/* Buttons */}
+                <div className="flex gap-3 pt-4 border-t border-slate-100">
                   <button
                     type="button"
                     onClick={handleCloseModal}
-                    className="btn btn-secondary flex-1"
+                    className="inline-flex items-center justify-center gap-2 border-2 border-slate-200 text-slate-700 font-display font-bold uppercase tracking-wide px-5 py-2.5 hover:border-slate-400 transition-all cursor-pointer flex-1"
                   >
                     Cancelar
                   </button>
-                  <button type="submit" className="btn btn-primary flex-1">
+                  <button
+                    type="submit"
+                    className="inline-flex items-center justify-center gap-2 bg-primary-500 text-white font-display font-bold uppercase tracking-wide px-5 py-2.5 hover:bg-primary-600 active:scale-95 transition-all cursor-pointer flex-1"
+                  >
                     {editingEvent ? 'Actualizar Evento' : 'Crear Evento'}
                   </button>
                 </div>

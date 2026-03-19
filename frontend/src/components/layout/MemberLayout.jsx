@@ -1,7 +1,16 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/features/auth/context/AuthContext';
-import { Home, User, Calendar, Trophy, LogOut, Menu, X, Image } from 'lucide-react';
+import { Home, User, Calendar, Trophy, LogOut, Menu, X, Image, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
+import logo from '@/assets/images/Logo.png';
+
+const menuItems = [
+  { name: 'Dashboard', path: '/member', icon: Home },
+  { name: 'Mi Perfil', path: '/member/profile', icon: User },
+  { name: 'Mis Fotos', path: '/member/photos', icon: Image },
+  { name: 'Torneos', path: '/member/tournaments', icon: Trophy },
+  { name: 'Eventos', path: '/member/events', icon: Calendar },
+];
 
 function MemberLayout() {
   const { user, logout } = useAuth();
@@ -9,107 +18,106 @@ function MemberLayout() {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const menuItems = [
-    { name: 'Dashboard', path: '/member', icon: Home },
-    { name: 'Mi Perfil', path: '/member/profile', icon: User },
-    { name: 'Mis Fotos', path: '/member/photos', icon: Image },
-    { name: 'Torneos', path: '/member/tournaments', icon: Trophy },
-    { name: 'Eventos', path: '/member/events', icon: Calendar },
-  ];
-
-  const isActive = (path) => {
-    if (path === '/member') {
-      return location.pathname === path;
-    }
-    return location.pathname.startsWith(path);
-  };
+  const isActive = (path) =>
+    path === '/member' ? location.pathname === path : location.pathname.startsWith(path);
 
   const handleLogout = async () => {
     await logout();
     navigate('/');
   };
 
+  const initials =
+    `${user?.profile?.firstName?.[0] || ''}${user?.profile?.lastName?.[0] || ''}`.toUpperCase();
+
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      <aside className={`${
-        sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-      } md:translate-x-0 fixed md:static inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 transition-transform duration-300`}>
-        <div className="h-full flex flex-col">
-          <div className="p-6 border-b border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="font-display text-xl font-bold text-gray-900">Pelícanos Vóley Club</h2>
-              </div>
-              <button
-                onClick={() => setSidebarOpen(false)}
-                className="md:hidden p-2 hover:bg-gray-100 rounded-lg"
-              >
-                <X className="w-5 h-5" />
-              </button>
+    <div className="min-h-screen bg-slate-50 flex">
+      {/* ── SIDEBAR ── */}
+      <aside
+        className={`${
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        } md:translate-x-0 fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 flex flex-col transition-transform duration-300`}
+      >
+        {/* Top accent bar */}
+        <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary-500" />
+
+        {/* Logo */}
+        <div className="pl-5 pr-4 py-5 border-b border-slate-800 flex items-center justify-between flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="bg-white p-1.5 flex-shrink-0">
+              <img src={logo} alt="Pelícanos" className="h-7 w-auto" />
+            </div>
+            <div>
+              <p className="font-display font-bold text-white text-sm uppercase tracking-wide leading-tight">
+                Pelícanos Vóley
+              </p>
+              <p className="text-slate-500 text-xs font-bold uppercase tracking-widest">Miembro</p>
             </div>
           </div>
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="md:hidden p-1.5 text-slate-400 hover:text-white transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
-          <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-            {menuItems.map((item) => {
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  onClick={() => setSidebarOpen(false)}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                    isActive(item.path)
-                      ? 'bg-primary-500 text-white'
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}
-                >
-                  <Icon className="w-5 h-5" />
-                  <span className="font-medium">{item.name}</span>
-                </Link>
-              );
-            })}
-          </nav>
-
-          <div className="p-4 border-t border-gray-200">
-            <div className="flex items-center gap-3 mb-4 px-4">
-              <div className="w-10 h-10 rounded-full bg-primary-500 flex items-center justify-center">
-                <span className="font-bold text-white">
-                  {user?.profile?.firstName?.[0]}{user?.profile?.lastName?.[0]}
-                </span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-medium truncate text-gray-900">
-                  {user?.profile?.firstName} {user?.profile?.lastName}
-                </p>
-                <p className="text-xs text-gray-500 truncate">{user?.email}</p>
-              </div>
-            </div>
-            <button
-              onClick={handleLogout}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
+        {/* Nav */}
+        <nav className="flex-1 py-4 px-3 space-y-0.5 overflow-y-auto">
+          {menuItems.map(({ name, path, icon: Icon }) => (
+            <Link
+              key={path}
+              to={path}
+              onClick={() => setSidebarOpen(false)}
+              className={`flex items-center gap-3 px-3 py-2.5 transition-colors ${
+                isActive(path)
+                  ? 'bg-primary-500 text-white font-bold'
+                  : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+              }`}
             >
-              <LogOut className="w-5 h-5" />
-              <span className="font-medium">Logout</span>
-            </button>
+              <Icon className="w-5 h-5 flex-shrink-0" />
+              <span className="font-display font-bold uppercase tracking-wide text-sm">{name}</span>
+              {isActive(path) && <ChevronRight className="w-4 h-4 ml-auto" />}
+            </Link>
+          ))}
+        </nav>
+
+        {/* User footer */}
+        <div className="border-t border-slate-800 p-4 flex-shrink-0">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-9 h-9 bg-primary-500 flex items-center justify-center flex-shrink-0">
+              <span className="font-display font-bold text-white text-sm">{initials}</span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-white text-sm font-bold truncate">
+                {user?.profile?.firstName} {user?.profile?.lastName}
+              </p>
+              <p className="text-slate-500 text-xs truncate">{user?.email}</p>
+            </div>
           </div>
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-3 py-2.5 text-slate-400 hover:bg-slate-800 hover:text-white transition-colors cursor-pointer"
+          >
+            <LogOut className="w-5 h-5" />
+            <span className="font-display font-bold uppercase tracking-wide text-sm">Salir</span>
+          </button>
         </div>
       </aside>
 
-      <div className="flex-1 flex flex-col min-h-screen">
-        <header className="bg-white shadow-sm sticky top-0 z-40">
-          <div className="px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+      {/* ── MAIN ── */}
+      <div className="flex-1 flex flex-col min-h-screen md:ml-64">
+        <header className="bg-white border-b border-slate-200 sticky top-0 z-40">
+          <div className="px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
             <button
               onClick={() => setSidebarOpen(true)}
-              className="md:hidden p-2 hover:bg-gray-100 rounded-lg"
+              className="md:hidden p-2 text-slate-500 hover:text-slate-900 transition-colors cursor-pointer"
             >
               <Menu className="w-6 h-6" />
             </button>
-            <div className="flex items-center gap-4">
-              <button className="p-2 hover:bg-gray-100 rounded-lg">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                </svg>
-              </button>
+            <div className="ml-auto">
+              <span className="hidden sm:block text-xs font-bold uppercase tracking-widest text-slate-400">
+                Portal del Miembro
+              </span>
             </div>
           </div>
         </header>
@@ -119,10 +127,11 @@ function MemberLayout() {
         </main>
       </div>
 
+      {/* Overlay */}
       {sidebarOpen && (
         <div
           onClick={() => setSidebarOpen(false)}
-          className="md:hidden fixed inset-0 bg-black bg-opacity-50 z-40"
+          className="md:hidden fixed inset-0 bg-black/60 z-40"
         />
       )}
     </div>

@@ -472,13 +472,19 @@ function GalleryPage() {
                         )}
                         <div className="flex-1 min-w-0">
                           <div className="bg-gray-100 rounded-2xl px-4 py-2">
-                            <Link
-                              to={`/members/${comment.user?._id}`}
-                              className="font-bold text-gray-900 hover:text-primary-500 hover:underline text-sm"
-                              onClick={() => setShowCommentsModal(false)}
-                            >
-                              {comment.user?.profile?.firstName} {comment.user?.profile?.lastName}
-                            </Link>
+                            {comment.memberId ? (
+                              <Link
+                                to={`/members/${comment.memberId}`}
+                                className="font-bold text-gray-900 hover:text-primary-500 hover:underline text-sm"
+                                onClick={() => setShowCommentsModal(false)}
+                              >
+                                {comment.user?.profile?.firstName} {comment.user?.profile?.lastName}
+                              </Link>
+                            ) : (
+                              <span className="font-bold text-gray-900 text-sm">
+                                {comment.user?.profile?.firstName} {comment.user?.profile?.lastName}
+                              </span>
+                            )}
                             <p className="text-gray-800 text-sm mt-1 break-words">{comment.text}</p>
                           </div>
                           <p className="text-xs text-gray-400 mt-1 px-4">

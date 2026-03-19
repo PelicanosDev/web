@@ -1,31 +1,45 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, X } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Dumbbell } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from '@/api/axios';
+
+const categoryLabels = {
+  fuerza: 'Fuerza',
+  velocidad: 'Velocidad',
+  resistencia: 'Resistencia',
+  tecnica: 'Técnica',
+  flexibilidad: 'Flexibilidad',
+  potencia: 'Potencia',
+};
+
+const categoryColors = {
+  fuerza: 'bg-red-100 text-red-800',
+  velocidad: 'bg-sky-100 text-sky-800',
+  resistencia: 'bg-green-100 text-green-800',
+  tecnica: 'bg-purple-100 text-purple-800',
+  flexibilidad: 'bg-amber-100 text-amber-800',
+  potencia: 'bg-orange-100 text-orange-800',
+};
+
+const inputCls = 'w-full px-4 py-3 border-2 border-slate-200 focus:border-primary-500 outline-none transition-colors text-slate-900 bg-white';
+const labelCls = 'block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2';
 
 function ExercisesPage() {
   const [exercises, setExercises] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingExercise, setEditingExercise] = useState(null);
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    defaultUnit: 'cm',
-    category: 'fuerza'
-  });
+  const [formData, setFormData] = useState({ name: '', description: '', defaultUnit: 'cm', category: 'fuerza' });
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    fetchExercises();
-  }, []);
+  useEffect(() => { fetchExercises(); }, []);
 
   const fetchExercises = async () => {
     try {
       const response = await axios.get('/exercises');
       setExercises(response.data.data);
     } catch (error) {
-      console.error('Error fetching exercises:', error);
+      console.error(error);
     } finally {
       setLoading(false);
     }
@@ -34,20 +48,10 @@ function ExercisesPage() {
   const handleOpenModal = (exercise = null) => {
     if (exercise) {
       setEditingExercise(exercise);
-      setFormData({
-        name: exercise.name,
-        description: exercise.description || '',
-        defaultUnit: exercise.defaultUnit,
-        category: exercise.category
-      });
+      setFormData({ name: exercise.name, description: exercise.description || '', defaultUnit: exercise.defaultUnit, category: exercise.category });
     } else {
       setEditingExercise(null);
-      setFormData({
-        name: '',
-        description: '',
-        defaultUnit: 'cm',
-        category: 'fuerza'
-      });
+      setFormData({ name: '', description: '', defaultUnit: 'cm', category: 'fuerza' });
     }
     setShowModal(true);
   };
@@ -55,30 +59,22 @@ function ExercisesPage() {
   const handleCloseModal = () => {
     setShowModal(false);
     setEditingExercise(null);
-    setFormData({
-      name: '',
-      description: '',
-      defaultUnit: 'cm',
-      category: 'fuerza'
-    });
+    setFormData({ name: '', description: '', defaultUnit: 'cm', category: 'fuerza' });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
-
     try {
       if (editingExercise) {
         await axios.put(`/admin/exercises/${editingExercise._id}`, formData);
-        alert('Ejercicio actualizado exitosamente');
       } else {
         await axios.post('/admin/exercises', formData);
-        alert('Ejercicio creado exitosamente');
       }
       handleCloseModal();
       fetchExercises();
     } catch (error) {
-      console.error('Error saving exercise:', error);
+      console.error(error);
       alert('Error: ' + (error.response?.data?.message || error.message));
     } finally {
       setSubmitting(false);
@@ -86,104 +82,90 @@ function ExercisesPage() {
   };
 
   const handleDelete = async (id) => {
-    if (!confirm('¿Estás seguro de desactivar este ejercicio?')) return;
-
+    if (!confirm('¿Desactivar este ejercicio?')) return;
     try {
       await axios.delete(`/admin/exercises/${id}`);
-      alert('Ejercicio desactivado exitosamente');
       fetchExercises();
     } catch (error) {
-      console.error('Error deleting exercise:', error);
-      alert('Error al desactivar ejercicio: ' + (error.response?.data?.message || error.message));
+      alert('Error al desactivar: ' + (error.response?.data?.message || error.message));
     }
-  };
-
-  const categoryLabels = {
-    fuerza: 'Fuerza',
-    velocidad: 'Velocidad',
-    resistencia: 'Resistencia',
-    tecnica: 'Técnica',
-    flexibilidad: 'Flexibilidad',
-    potencia: 'Potencia'
-  };
-
-  const categoryColors = {
-    fuerza: 'bg-red-100 text-red-800',
-    velocidad: 'bg-blue-100 text-blue-800',
-    resistencia: 'bg-green-100 text-green-800',
-    tecnica: 'bg-purple-100 text-purple-800',
-    flexibilidad: 'bg-yellow-100 text-yellow-800',
-    potencia: 'bg-orange-100 text-orange-800'
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500"></div>
+        <div className="w-10 h-10 border-4 border-slate-200 border-t-primary-500 rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
         <div>
-          <h1 className="text-3xl font-display font-bold text-gray-900">Ejercicios</h1>
-          <p className="text-gray-600">Gestiona el catálogo de ejercicios físicos</p>
+          <span className="inline-block text-primary-600 text-xs font-bold uppercase tracking-widest bg-primary-50 px-3 py-1.5 mb-3">
+            Catálogo
+          </span>
+          <h1 className="font-display font-black uppercase text-slate-900 text-3xl leading-none">
+            Ejercicios
+          </h1>
+          <p className="text-slate-500 mt-1">Gestiona el catálogo de ejercicios físicos</p>
         </div>
-        <button 
+        <button
           onClick={() => handleOpenModal()}
-          className="btn btn-primary"
+          className="inline-flex items-center gap-2 bg-primary-500 text-white font-display font-bold uppercase tracking-wide px-5 py-2.5 hover:bg-primary-600 active:scale-95 transition-all cursor-pointer"
         >
           <Plus className="w-5 h-5" />
           Crear Ejercicio
         </button>
       </div>
 
-      <div className="card">
+      {/* Table */}
+      <div className="bg-white border border-slate-100 shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="w-full min-w-[520px]">
             <thead>
-              <tr className="border-b border-gray-200">
-                <th className="text-left py-3 px-4 font-semibold text-gray-700">Nombre</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-700">Descripción</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-700">Categoría</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-700">Unidad</th>
-                <th className="text-left py-3 px-4 font-semibold text-gray-700">Acciones</th>
+              <tr className="border-b-2 border-slate-100 bg-slate-50">
+                <th className="text-left py-3 px-5 text-xs font-bold uppercase tracking-widest text-slate-400">Nombre</th>
+                <th className="text-left py-3 px-5 text-xs font-bold uppercase tracking-widest text-slate-400">Descripción</th>
+                <th className="text-left py-3 px-5 text-xs font-bold uppercase tracking-widest text-slate-400">Categoría</th>
+                <th className="text-left py-3 px-5 text-xs font-bold uppercase tracking-widest text-slate-400">Unidad</th>
+                <th className="text-left py-3 px-5 text-xs font-bold uppercase tracking-widest text-slate-400">Acciones</th>
               </tr>
             </thead>
             <tbody>
               {exercises.map((exercise) => (
-                <tr key={exercise._id} className="border-b border-gray-100 hover:bg-gray-50">
-                  <td className="py-3 px-4">
-                    <span className="font-medium text-gray-900">{exercise.name}</span>
+                <tr key={exercise._id} className="border-b border-slate-50 hover:bg-slate-50">
+                  <td className="py-3 px-5">
+                    <span className="font-bold text-slate-900">{exercise.name}</span>
                   </td>
-                  <td className="py-3 px-4">
-                    <span className="text-sm text-gray-600">{exercise.description || '-'}</span>
+                  <td className="py-3 px-5">
+                    <span className="text-sm text-slate-500">{exercise.description || '—'}</span>
                   </td>
-                  <td className="py-3 px-4">
-                    <span className={`badge ${categoryColors[exercise.category]}`}>
+                  <td className="py-3 px-5">
+                    <span className={`px-2 py-1 text-xs font-bold uppercase tracking-widest ${categoryColors[exercise.category]}`}>
                       {categoryLabels[exercise.category]}
                     </span>
                   </td>
-                  <td className="py-3 px-4">
-                    <span className="text-sm text-gray-700">{exercise.defaultUnit}</span>
+                  <td className="py-3 px-5">
+                    <span className="text-sm font-mono text-slate-600">{exercise.defaultUnit}</span>
                   </td>
-                  <td className="py-3 px-4">
-                    <div className="flex gap-2">
+                  <td className="py-3 px-5">
+                    <div className="flex gap-1">
                       <button
                         onClick={() => handleOpenModal(exercise)}
-                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                        className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer"
                         title="Editar"
                       >
-                        <Edit2 className="w-4 h-4 text-gray-600" />
+                        <Edit2 className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => handleDelete(exercise._id)}
-                        className="p-2 hover:bg-red-50 rounded-lg transition-colors"
+                        className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
                         title="Desactivar"
                       >
-                        <Trash2 className="w-4 h-4 text-red-600" />
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   </td>
@@ -194,19 +176,21 @@ function ExercisesPage() {
         </div>
 
         {exercises.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-gray-500">No hay ejercicios registrados</p>
+          <div className="text-center py-16">
+            <Dumbbell className="w-12 h-12 text-slate-200 mx-auto mb-3" />
+            <p className="text-slate-400 font-bold uppercase tracking-widest text-sm">Sin ejercicios registrados</p>
           </div>
         )}
       </div>
 
+      {/* Modal */}
       <AnimatePresence>
         {showModal && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"
             onClick={handleCloseModal}
           >
             <motion.div
@@ -214,52 +198,32 @@ function ExercisesPage() {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto"
+              className="bg-white shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto"
             >
-              <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-                <h2 className="text-xl font-display font-bold text-gray-900">
-                  {editingExercise ? 'Editar Ejercicio' : 'Crear Ejercicio'}
-                </h2>
-                <button
-                  onClick={handleCloseModal}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                >
+              <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-widest text-primary-500 mb-0.5">Ejercicios</p>
+                  <h2 className="font-display font-black uppercase text-slate-900 text-xl leading-none">
+                    {editingExercise ? 'Editar Ejercicio' : 'Crear Ejercicio'}
+                  </h2>
+                </div>
+                <button onClick={handleCloseModal} className="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 transition-colors cursor-pointer">
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <form onSubmit={handleSubmit} className="p-6 space-y-4">
+              <form onSubmit={handleSubmit} className="p-6 space-y-5">
                 <div>
-                  <label className="label">Nombre *</label>
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="input"
-                    placeholder="Ej: Salto vertical"
-                    required
-                  />
+                  <label className={labelCls}>Nombre *</label>
+                  <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className={inputCls} placeholder="Ej: Salto vertical" required />
                 </div>
-
                 <div>
-                  <label className="label">Descripción</label>
-                  <textarea
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    className="input resize-none"
-                    rows={3}
-                    placeholder="Descripción del ejercicio..."
-                  />
+                  <label className={labelCls}>Descripción</label>
+                  <textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className={`${inputCls} resize-none`} rows={3} placeholder="Descripción del ejercicio..." />
                 </div>
-
                 <div>
-                  <label className="label">Categoría *</label>
-                  <select
-                    value={formData.category}
-                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    className="input"
-                    required
-                  >
+                  <label className={labelCls}>Categoría *</label>
+                  <select value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })} className={inputCls} required>
                     <option value="fuerza">Fuerza</option>
                     <option value="velocidad">Velocidad</option>
                     <option value="resistencia">Resistencia</option>
@@ -268,15 +232,9 @@ function ExercisesPage() {
                     <option value="potencia">Potencia</option>
                   </select>
                 </div>
-
                 <div>
-                  <label className="label">Unidad de Medida por Defecto *</label>
-                  <select
-                    value={formData.defaultUnit}
-                    onChange={(e) => setFormData({ ...formData, defaultUnit: e.target.value })}
-                    className="input"
-                    required
-                  >
+                  <label className={labelCls}>Unidad de Medida *</label>
+                  <select value={formData.defaultUnit} onChange={(e) => setFormData({ ...formData, defaultUnit: e.target.value })} className={inputCls} required>
                     <option value="cm">Centímetros (cm)</option>
                     <option value="metros">Metros (m)</option>
                     <option value="segundos">Segundos (s)</option>
@@ -286,21 +244,11 @@ function ExercisesPage() {
                     <option value="km/h">Kilómetros por hora (km/h)</option>
                   </select>
                 </div>
-
-                <div className="flex gap-3 pt-4">
-                  <button
-                    type="button"
-                    onClick={handleCloseModal}
-                    className="btn btn-secondary flex-1"
-                    disabled={submitting}
-                  >
+                <div className="flex gap-3 pt-2">
+                  <button type="button" onClick={handleCloseModal} disabled={submitting} className="flex-1 inline-flex items-center justify-center border-2 border-slate-200 text-slate-700 font-display font-bold uppercase tracking-wide px-5 py-2.5 hover:border-slate-400 transition-all cursor-pointer disabled:opacity-50">
                     Cancelar
                   </button>
-                  <button
-                    type="submit"
-                    className="btn btn-primary flex-1"
-                    disabled={submitting}
-                  >
+                  <button type="submit" disabled={submitting} className="flex-1 inline-flex items-center justify-center bg-primary-500 text-white font-display font-bold uppercase tracking-wide px-5 py-2.5 hover:bg-primary-600 active:scale-95 transition-all cursor-pointer disabled:opacity-50">
                     {submitting ? 'Guardando...' : editingExercise ? 'Actualizar' : 'Crear'}
                   </button>
                 </div>
