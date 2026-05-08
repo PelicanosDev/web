@@ -65,6 +65,11 @@ function AdminEventsPage() {
       delete payload.recurringDays;
       delete payload.recurringStartTime;
 
+      // Ensure numeric fields are numbers, not strings from HTML inputs
+      if (payload.radius !== '') payload.radius = parseFloat(payload.radius) || 50;
+      if (payload.totalDays !== '') payload.totalDays = parseInt(payload.totalDays) || 1;
+      if (payload.maxParticipants !== '') payload.maxParticipants = payload.maxParticipants ? parseInt(payload.maxParticipants) : null;
+
       if (editingEvent) {
         await axios.put(`/admin/events/${editingEvent._id}`, payload);
       } else {

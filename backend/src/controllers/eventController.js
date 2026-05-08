@@ -231,20 +231,24 @@ const checkInToEvent = async (req, res, next) => {
       return res.status(403).json({ success: false, message: 'You are not a confirmed participant of this event' });
     }
 
-    if (!event.coordinates?.lat || !event.coordinates?.lng) {
-      return res.status(400).json({ success: false, message: 'Event has no location coordinates configured' });
+    const eventLat = parseFloat(event.coordinates?.lat);
+    const eventLng = parseFloat(event.coordinates?.lng);
+    if (event.coordinates == null || isNaN(eventLat) || isNaN(eventLng)) {
+      return res.status(400).json({ success: false, message: 'El evento no tiene coordenadas de ubicación configuradas' });
     }
 
-    const { lat, lng } = req.body;
-    if (lat === undefined || lng === undefined) {
-      return res.status(400).json({ success: false, message: 'Location coordinates are required' });
+    const memberLat = parseFloat(req.body.lat);
+    const memberLng = parseFloat(req.body.lng);
+    if (isNaN(memberLat) || isNaN(memberLng)) {
+      return res.status(400).json({ success: false, message: 'Coordenadas de ubicación inválidas' });
     }
 
-    const distance = haversineDistance(lat, lng, event.coordinates.lat, event.coordinates.lng);
-    if (distance > (event.radius || 50)) {
+    const maxRadius = parseFloat(event.radius) || 50;
+    const distance = haversineDistance(memberLat, memberLng, eventLat, eventLng);
+    if (distance > maxRadius) {
       return res.status(400).json({
         success: false,
-        message: `You are too far from the event location (${Math.round(distance)}m away, max ${event.radius || 50}m)`
+        message: `Estás muy lejos del lugar del evento (${Math.round(distance)}m de distancia, máximo ${Math.round(maxRadius)}m)`
       });
     }
 
