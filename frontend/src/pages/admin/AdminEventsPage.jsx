@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Calendar, MapPin, Users, Edit, Trash2, X, Clock, Navigation } from 'lucide-react';
+import { Plus, Calendar, MapPin, Users, Edit, Trash2, X, Clock, Navigation, BarChart2, CheckCircle, XCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from '@/api/axios';
 import dayjs from 'dayjs';
@@ -9,6 +9,9 @@ function AdminEventsPage() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingEvent, setEditingEvent] = useState(null);
+  const [attendanceEvent, setAttendanceEvent] = useState(null);
+  const [attendanceData, setAttendanceData] = useState(null);
+  const [loadingAttendance, setLoadingAttendance] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -138,6 +141,20 @@ function AdminEventsPage() {
     });
   };
 
+  const handleViewAttendance = async (event) => {
+    setAttendanceEvent(event);
+    setLoadingAttendance(true);
+    setAttendanceData(null);
+    try {
+      const response = await axios.get(`/admin/events/${event._id}`);
+      setAttendanceData(response.data.data);
+    } catch (error) {
+      console.error('Error fetching attendance:', error);
+    } finally {
+      setLoadingAttendance(false);
+    }
+  };
+
   const handleUseMyLocation = () => {
     navigator.geolocation.getCurrentPosition((position) => {
       setFormData(prev => ({
@@ -259,6 +276,15 @@ function AdminEventsPage() {
                       )}
                     </div>
                     <div className="flex gap-1 ml-2">
+                      {event.type === 'training' && (
+                        <button
+                          onClick={() => handleViewAttendance(event)}
+                          className="p-2 hover:bg-sky-50 transition-colors"
+                          title="Ver Asistencia"
+                        >
+                          <BarChart2 className="w-4 h-4 text-sky-500" />
+                        </button>
+                      )}
                       <button
                         onClick={() => handleEdit(event)}
                         className="p-2 hover:bg-slate-100 transition-colors"
@@ -334,12 +360,23 @@ function AdminEventsPage() {
                         {event.title}
                       </h3>
                     </div>
-                    <button
-                      onClick={() => handleDelete(event._id)}
-                      className="p-2 hover:bg-red-50 transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4 text-red-500" />
-                    </button>
+                    <div className="flex gap-1">
+                      {event.type === 'training' && (
+                        <button
+                          onClick={() => handleViewAttendance(event)}
+                          className="p-2 hover:bg-sky-50 transition-colors"
+                          title="Ver Asistencia"
+                        >
+                          <BarChart2 className="w-4 h-4 text-sky-500" />
+                        </button>
+                      )}
+                      <button
+                        onClick={() => handleDelete(event._id)}
+                        className="p-2 hover:bg-red-50 transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4 text-red-500" />
+                      </button>
+                    </div>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-slate-400">
                     <Calendar className="w-4 h-4" />
@@ -686,6 +723,172 @@ function AdminEventsPage() {
                   </button>
                 </div>
               </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Attendance Modal */}
+      <AnimatePresence>
+        {attendanceEvent && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+            onClick={() => setAttendanceEvent(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white shadow-2xl max-w-2xl w-full max-h-[85vh] flex flex-col"
+            >
+              <div className="sticky top-0 bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center">
+                <div>
+                  <span className="inline-block text-sky-600 text-xs font-bold uppercase tracking-widest bg-sky-50 px-3 py-1 mb-1">
+                    Asistencia
+                  </span>
+                  <h2 className="font-display font-black uppercase text-slate-900 text-xl leading-none">
+                    {attendanceEvent.title}
+                  </h2>
+                </div>
+                <button onClick={() => setAttendanceEvent(null)} className="p-2 hover:bg-slate-100 transition-colors">
+                  <X className="w-5 h-5 text-slate-500" />
+                </button>
+              </div>
+
+              <div className="overflow-y-auto flex-1 p-6">
+                {loadingAttendance ? (
+                  <div className="flex items-center justify-center h-32">
+                    <div className="w-8 h-8 border-4 border-slate-200 border-t-sky-500 rounded-full animate-spin" />
+                  </div>
+                ) : !attendanceData ? (
+                  <p className="text-center text-slate-400 py-8">Error al cargar datos</p>
+                ) : (() => {
+                  const participants = attendanceData.participants?.filter(p => p.status === 'confirmed') || [];
+                  const attendance = attendanceData.dailyAttendance || [];
+
+                  // Get unique dates sorted descending
+                  const dates = [...new Set(attendance.map(a => new Date(a.date).toDateString()))]
+                    .sort((a, b) => new Date(b) - new Date(a));
+
+                  // Build a lookup: memberId -> [dates checked in]
+                  const checkInsByMember = {};
+                  attendance.forEach(a => {
+                    const mid = (a.memberId?._id || a.memberId)?.toString();
+                    if (!checkInsByMember[mid]) checkInsByMember[mid] = new Set();
+                    checkInsByMember[mid].add(new Date(a.date).toDateString());
+                  });
+
+                  return (
+                    <div className="space-y-6">
+                      {/* Summary stats */}
+                      <div className="grid grid-cols-3 gap-3">
+                        <div className="bg-slate-900 p-4 border-l-4 border-sky-500 text-center">
+                          <p className="font-display font-black text-3xl text-sky-400">{participants.length}</p>
+                          <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mt-1">Inscritos</p>
+                        </div>
+                        <div className="bg-white border border-slate-100 p-4 border-l-4 border-emerald-400 text-center">
+                          <p className="font-display font-black text-3xl text-emerald-500">{attendance.length}</p>
+                          <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mt-1">Check-ins Totales</p>
+                        </div>
+                        <div className="bg-white border border-slate-100 p-4 border-l-4 border-primary-400 text-center">
+                          <p className="font-display font-black text-3xl text-primary-500">{dates.length}</p>
+                          <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mt-1">Días con Asist.</p>
+                        </div>
+                      </div>
+
+                      {participants.length === 0 ? (
+                        <p className="text-center text-slate-400 py-8">No hay participantes inscritos</p>
+                      ) : (
+                        <div>
+                          <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">
+                            Asistencia por Miembro
+                          </p>
+                          <div className="space-y-2">
+                            {participants.map((p) => {
+                              const member = p.memberId;
+                              const memberId = (member?._id || member)?.toString();
+                              const memberCheckins = checkInsByMember[memberId] || new Set();
+                              const name = member?.userId?.profile
+                                ? `${member.userId.profile.firstName} ${member.userId.profile.lastName}`
+                                : member?.memberNumber || memberId?.slice(-6) || 'Miembro';
+                              const memberNumber = member?.memberNumber || '';
+
+                              return (
+                                <div key={memberId} className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200">
+                                  <div>
+                                    <p className="font-bold text-slate-900 text-sm">{name}</p>
+                                    {memberNumber && <p className="text-xs text-slate-400">{memberNumber}</p>}
+                                  </div>
+                                  <div className="flex items-center gap-3">
+                                    <span className="text-xs text-slate-500 font-bold">
+                                      {memberCheckins.size} {memberCheckins.size === 1 ? 'día' : 'días'}
+                                    </span>
+                                    {memberCheckins.size > 0
+                                      ? <CheckCircle className="w-5 h-5 text-emerald-500" />
+                                      : <XCircle className="w-5 h-5 text-red-300" />}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {dates.length > 0 && (
+                        <div>
+                          <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">
+                            Historial por Fecha
+                          </p>
+                          <div className="space-y-3">
+                            {dates.map(dateStr => {
+                              const dayCheckins = attendance.filter(a => new Date(a.date).toDateString() === dateStr);
+                              return (
+                                <div key={dateStr} className="border border-slate-200 overflow-hidden">
+                                  <div className="bg-slate-900 px-4 py-2 flex items-center justify-between">
+                                    <p className="text-xs font-bold uppercase tracking-widest text-slate-300">
+                                      {new Date(dateStr).toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                                    </p>
+                                    <span className="text-sky-400 font-bold text-sm">{dayCheckins.length} presentes</span>
+                                  </div>
+                                  <div className="divide-y divide-slate-100">
+                                    {dayCheckins.map((a, i) => {
+                                      const m = a.memberId;
+                                      const n = m?.userId?.profile
+                                        ? `${m.userId.profile.firstName} ${m.userId.profile.lastName}`
+                                        : m?.memberNumber || 'Miembro';
+                                      const time = a.checkInTime
+                                        ? new Date(a.checkInTime).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })
+                                        : '';
+                                      return (
+                                        <div key={i} className="flex items-center justify-between px-4 py-2 bg-white">
+                                          <span className="text-sm text-slate-700 font-medium">{n}</span>
+                                          {time && <span className="text-xs text-slate-400">{time}</span>}
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {attendance.length === 0 && (
+                        <div className="text-center py-8">
+                          <BarChart2 className="w-12 h-12 text-slate-200 mx-auto mb-3" />
+                          <p className="text-slate-400 text-sm">Aún no hay registros de asistencia</p>
+                          <p className="text-slate-300 text-xs mt-1">Los miembros deben marcar asistencia desde su panel</p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
             </motion.div>
           </motion.div>
         )}

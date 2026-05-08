@@ -314,19 +314,52 @@ function MemberDetailPage() {
 
           <div className="bg-white border border-slate-100 shadow-sm p-6">
             <h3 className="text-xl font-display font-black uppercase text-slate-900 mb-6">Asistencia</h3>
-            <div className="flex items-center justify-center">
-              <div className="bg-slate-900 p-8 border-l-4 border-primary-500 text-center">
-                <p className="font-display font-black text-5xl text-primary-400">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+              <div className="bg-slate-900 p-6 border-l-4 border-primary-500 text-center">
+                <p className="font-display font-black text-4xl text-primary-400">
                   {member.attendance?.length > 0
                     ? Math.round((member.attendance.filter(a => a.present).length / member.attendance.length) * 100)
                     : 0}%
                 </p>
                 <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mt-2">Tasa de Asistencia</p>
-                <p className="text-sm text-slate-500 mt-1">
-                  {member.attendance?.filter(a => a.present).length || 0} de {member.attendance?.length || 0} sesiones
-                </p>
+              </div>
+              <div className="bg-white border border-slate-100 shadow-sm p-6 border-l-4 border-sky-400 text-center">
+                <p className="font-display font-black text-4xl text-sky-500">{member.attendance?.filter(a => a.present).length || 0}</p>
+                <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mt-2">Sesiones Asistidas</p>
+              </div>
+              <div className="bg-white border border-slate-100 shadow-sm p-6 border-l-4 border-slate-300 text-center">
+                <p className="font-display font-black text-4xl text-slate-500">{member.attendance?.length || 0}</p>
+                <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mt-2">Total Registradas</p>
               </div>
             </div>
+
+            {member.attendance?.length > 0 ? (
+              <div>
+                <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">Historial Reciente</p>
+                <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
+                  {member.attendance.slice().reverse().map((record, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-2 h-2 rounded-full flex-shrink-0 ${record.present ? 'bg-emerald-500' : 'bg-red-400'}`} />
+                        <div>
+                          <p className="text-sm font-bold text-slate-900">
+                            {new Date(record.date).toLocaleDateString('es-ES', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}
+                          </p>
+                          <p className="text-xs text-slate-400 uppercase tracking-widest">
+                            {record.sessionType === 'training' ? 'Entrenamiento' : record.sessionType || 'Sesión'}
+                          </p>
+                        </div>
+                      </div>
+                      <span className={`px-2 py-1 text-xs font-bold uppercase tracking-widest ${record.present ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+                        {record.present ? 'Presente' : 'Ausente'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <p className="text-slate-400 text-center py-6 text-sm">No hay registros de asistencia aún</p>
+            )}
           </div>
         </div>
       </div>

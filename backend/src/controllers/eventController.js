@@ -49,7 +49,11 @@ const getEventById = async (req, res, next) => {
   try {
     const event = await Event.findById(req.params.id)
       .populate('createdBy', 'profile')
-      .populate('participants.memberId');
+      .populate('participants.memberId')
+      .populate({
+        path: 'dailyAttendance.memberId',
+        populate: { path: 'userId', select: 'profile' }
+      });
 
     if (!event) {
       return res.status(404).json({

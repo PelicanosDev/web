@@ -51,7 +51,10 @@ function MemberDashboard() {
             lng: position.coords.longitude
           });
           setCheckInStatus(prev => ({ ...prev, [eventId]: 'success' }));
-          setTodayTrainingEvents(prev => prev.filter(e => e._id !== eventId));
+          // Keep in list to show success message; auto-dismiss after 6s
+          setTimeout(() => {
+            setTodayTrainingEvents(prev => prev.filter(e => e._id !== eventId));
+          }, 6000);
         } catch (error) {
           setCheckInStatus(prev => ({
             ...prev,
@@ -90,13 +93,28 @@ function MemberDashboard() {
       {todayTrainingEvents.length > 0 && todayTrainingEvents.map((event) => {
         const status = checkInStatus[event._id];
         const isError = status?.startsWith('error:');
+        const isSuccess = status === 'success';
         return (
-          <div key={event._id} className="bg-sky-900 border-l-4 border-sky-400 p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div
+            key={event._id}
+            className={`border-l-4 p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 transition-all ${
+              isSuccess
+                ? 'bg-emerald-900 border-emerald-400'
+                : 'bg-sky-900 border-sky-400'
+            }`}
+          >
             <div className="flex items-center gap-3">
-              <MapPin className="w-5 h-5 text-sky-400 flex-shrink-0" />
+              {isSuccess
+                ? <CheckCircle className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+                : <MapPin className="w-5 h-5 text-sky-400 flex-shrink-0" />}
               <div>
-                <p className="text-xs font-bold uppercase tracking-widest text-sky-400 mb-0.5">Entrenamiento Hoy</p>
+                <p className={`text-xs font-bold uppercase tracking-widest mb-0.5 ${isSuccess ? 'text-emerald-400' : 'text-sky-400'}`}>
+                  {isSuccess ? '¡Asistencia Marcada!' : 'Entrenamiento Hoy'}
+                </p>
                 <p className="font-bold text-white">{event.title}</p>
+                {isSuccess && (
+                  <p className="text-sm text-emerald-300 mt-1">¡Disfruta tu entrenamiento! +50 XP ganados 🏐</p>
+                )}
                 {isError && (
                   <p className="text-xs text-red-300 mt-1 flex items-center gap-1">
                     <AlertCircle className="w-3 h-3" />{status.replace('error:', '')}
@@ -104,17 +122,19 @@ function MemberDashboard() {
                 )}
               </div>
             </div>
-            <button
-              onClick={() => handleCheckIn(event._id)}
-              disabled={status === 'loading'}
-              className="inline-flex items-center gap-2 bg-sky-500 text-white font-display font-bold uppercase tracking-wide px-4 py-2 hover:bg-sky-600 active:scale-95 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
-            >
-              {status === 'loading' ? (
-                <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Marcando...</>
-              ) : (
-                <><CheckCircle className="w-4 h-4" />Marcar Asistencia</>
-              )}
-            </button>
+            {!isSuccess && (
+              <button
+                onClick={() => handleCheckIn(event._id)}
+                disabled={status === 'loading'}
+                className="inline-flex items-center gap-2 bg-sky-500 text-white font-display font-bold uppercase tracking-wide px-4 py-2 hover:bg-sky-600 active:scale-95 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+              >
+                {status === 'loading' ? (
+                  <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Marcando...</>
+                ) : (
+                  <><CheckCircle className="w-4 h-4" />Marcar Asistencia</>
+                )}
+              </button>
+            )}
           </div>
         );
       })}
