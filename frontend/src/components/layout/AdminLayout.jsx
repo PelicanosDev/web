@@ -8,6 +8,7 @@ import {
   Trophy,
   Award,
   Dumbbell,
+  FolderOpen,
   LogOut,
   Menu,
   X,
@@ -24,6 +25,7 @@ const menuItems = [
   { name: 'Eventos', path: '/admin/events', icon: Calendar },
   { name: 'Torneos', path: '/admin/tournaments', icon: Trophy },
   { name: 'Insignias', path: '/admin/badges', icon: Award },
+  { name: 'Recursos', path: '/admin/resources', icon: FolderOpen },
 ];
 
 function AdminLayout() {

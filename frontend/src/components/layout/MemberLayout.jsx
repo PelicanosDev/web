@@ -1,6 +1,6 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/features/auth/context/AuthContext';
-import { Home, User, Calendar, Trophy, LogOut, Menu, X, Image, ChevronRight, Bell } from 'lucide-react';
+import { Home, User, Calendar, Trophy, LogOut, Menu, X, Image, ChevronRight, Bell, BookOpen } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import logo from '@/assets/images/Logo.png';
 import axios from '@/api/axios';
@@ -11,6 +11,7 @@ const menuItems = [
   { name: 'Mis Fotos', path: '/member/photos', icon: Image },
   { name: 'Torneos', path: '/member/tournaments', icon: Trophy },
   { name: 'Eventos', path: '/member/events', icon: Calendar },
+  { name: 'Recursos', path: '/member/resources', icon: BookOpen },
 ];
 
 function MemberLayout() {

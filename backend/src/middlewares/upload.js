@@ -41,5 +41,22 @@ const mediaUpload = multer({
   fileFilter: mediaFilter
 });
 
+const anyFileFilter = (req, file, cb) => {
+  const allowed = /pdf|doc|docx|mp4|mov|webm|avi|jpeg|jpg|png/;
+  const ext = path.extname(file.originalname).toLowerCase().replace('.', '');
+  if (allowed.test(ext)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Tipo de archivo no permitido'));
+  }
+};
+
+const anyFileUpload = multer({
+  storage,
+  limits: { fileSize: 50 * 1024 * 1024 },
+  fileFilter: anyFileFilter,
+});
+
 module.exports = upload;
 module.exports.mediaUpload = mediaUpload;
+module.exports.anyFileUpload = anyFileUpload;

@@ -23,12 +23,14 @@ import AdminTournamentsPage from '@/pages/admin/AdminTournamentsPage';
 import AdminTournamentDetailPage from '@/pages/admin/AdminTournamentDetailPage';
 import BadgesPage from '@/pages/admin/BadgesPage';
 import ExercisesPage from '@/pages/admin/ExercisesPage';
+import AdminResourcesPage from '@/pages/admin/AdminResourcesPage';
 
 import MemberDashboard from '@/pages/member/MemberDashboard';
 import MemberProfilePage from '@/pages/member/MemberProfilePage';
 import MemberTournamentsPage from '@/pages/member/MemberTournamentsPage';
 import MemberPhotosPage from '@/pages/member/MemberPhotosPage';
 import MemberEventsPage from '@/pages/member/MemberEventsPage';
+import MemberResourcesPage from '@/pages/member/MemberResourcesPage';
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { user, loading } = useAuth();
@@ -84,6 +86,7 @@ function AppRouter() {
         <Route path="tournaments/:id" element={<AdminTournamentDetailPage />} />
         <Route path="badges" element={<BadgesPage />} />
         <Route path="exercises" element={<ExercisesPage />} />
+        <Route path="resources" element={<AdminResourcesPage />} />
       </Route>
 
       <Route
@@ -99,6 +102,7 @@ function AppRouter() {
         <Route path="tournaments" element={<MemberTournamentsPage />} />
         <Route path="photos" element={<MemberPhotosPage />} />
         <Route path="events" element={<MemberEventsPage />} />
+        <Route path="resources" element={<MemberResourcesPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
