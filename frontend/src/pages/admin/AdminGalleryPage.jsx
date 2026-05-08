@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Upload, X, Image as ImageIcon, Trash2, Eye, Filter, Search, UserPlus } from 'lucide-react';
+import { Upload, X, Image as ImageIcon, Trash2, Eye, Filter, Search, UserPlus, Play, Film } from 'lucide-react';
 import axios from '@/api/axios';
 
 function AdminGalleryPage() {
@@ -84,15 +84,18 @@ function AdminGalleryPage() {
     setTaggedMemberObjects(prev => prev.filter(m => m._id !== memberId));
   };
 
+  const isVideoFile = (file) => file?.type?.startsWith('video/');
+
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        alert('El archivo es demasiado grande. Máximo 5MB.');
+      const maxSize = isVideoFile(file) ? 50 * 1024 * 1024 : 5 * 1024 * 1024;
+      if (file.size > maxSize) {
+        alert(`El archivo es demasiado grande. Máximo ${isVideoFile(file) ? '50MB para videos' : '5MB para imágenes'}.`);
         return;
       }
-      if (!file.type.startsWith('image/')) {
-        alert('Por favor selecciona una imagen válida.');
+      if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) {
+        alert('Por favor selecciona una imagen o video válido.');
         return;
       }
       setSelectedFile(file);
@@ -110,7 +113,7 @@ function AdminGalleryPage() {
     setUploading(true);
     try {
       const formData = new FormData();
-      formData.append('image', selectedFile);
+      formData.append('media', selectedFile);
       formData.append('title', uploadData.title);
       formData.append('description', uploadData.description);
       formData.append('category', uploadData.category);
@@ -261,12 +264,25 @@ function AdminGalleryPage() {
               animate={{ opacity: 1, scale: 1 }}
               className="bg-white border border-slate-100 shadow-sm overflow-hidden group"
             >
-              <div className="relative aspect-square">
-                <img
-                  src={image.imageUrl}
-                  alt={image.title}
-                  className="w-full h-full object-cover"
-                />
+              <div className="relative aspect-square bg-slate-900">
+                {image.mediaType === 'video' ? (
+                  <>
+                    {image.thumbnailUrl ? (
+                      <img src={image.thumbnailUrl} alt={image.title} className="w-full h-full object-cover opacity-80" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <Film className="w-12 h-12 text-slate-600" />
+                      </div>
+                    )}
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <div className="w-12 h-12 bg-black/60 rounded-full flex items-center justify-center">
+                        <Play className="w-6 h-6 text-white ml-1" />
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <img src={image.imageUrl} alt={image.title} className="w-full h-full object-cover" />
+                )}
                 <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
                   <button
                     onClick={() => window.open(image.imageUrl, '_blank')}
@@ -289,9 +305,16 @@ function AdminGalleryPage() {
                 {image.description && (
                   <p className="text-xs text-slate-500 mb-2 line-clamp-2">{image.description}</p>
                 )}
-                <span className="px-2 py-1 text-xs font-bold uppercase tracking-widest bg-primary-50 text-primary-700">
-                  {getCategoryName(image.category)}
-                </span>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="px-2 py-1 text-xs font-bold uppercase tracking-widest bg-primary-50 text-primary-700">
+                    {getCategoryName(image.category)}
+                  </span>
+                  {image.mediaType === 'video' && (
+                    <span className="px-2 py-1 text-xs font-bold uppercase tracking-widest bg-purple-50 text-purple-700 flex items-center gap-1">
+                      <Film className="w-3 h-3" /> Video
+                    </span>
+                  )}
+                </div>
               </div>
             </motion.div>
           ))}
@@ -322,7 +345,7 @@ function AdminGalleryPage() {
                     Galería
                   </span>
                   <h2 className="font-display font-black uppercase text-slate-900 text-xl leading-none">
-                    Subir Nueva Imagen
+                    Subir Imagen o Video
                   </h2>
                 </div>
                 <button
@@ -338,16 +361,24 @@ function AdminGalleryPage() {
                 {/* File Upload */}
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">
-                    Imagen *
+                    Imagen o Video *
                   </label>
                   <div className="mt-1">
                     {previewUrl ? (
                       <div className="relative">
-                        <img
-                          src={previewUrl}
-                          alt="Vista previa"
-                          className="w-full h-64 object-cover"
-                        />
+                        {isVideoFile(selectedFile) ? (
+                          <video
+                            src={previewUrl}
+                            className="w-full h-64 object-cover bg-slate-900"
+                            controls
+                          />
+                        ) : (
+                          <img
+                            src={previewUrl}
+                            alt="Vista previa"
+                            className="w-full h-64 object-cover"
+                          />
+                        )}
                         <button
                           type="button"
                           onClick={() => {
@@ -361,14 +392,17 @@ function AdminGalleryPage() {
                       </div>
                     ) : (
                       <label className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-slate-300 cursor-pointer hover:bg-slate-50 transition-colors">
-                        <Upload className="w-12 h-12 text-slate-300 mb-3" />
+                        <div className="flex gap-3 mb-3">
+                          <Upload className="w-10 h-10 text-slate-300" />
+                          <Film className="w-10 h-10 text-slate-300" />
+                        </div>
                         <p className="text-sm font-bold uppercase tracking-wide text-slate-500 mb-1">
-                          Haz clic para subir una imagen
+                          Haz clic para subir imagen o video
                         </p>
-                        <p className="text-xs text-slate-400 uppercase tracking-widest">PNG, JPG hasta 5MB</p>
+                        <p className="text-xs text-slate-400 uppercase tracking-widest">PNG, JPG hasta 5MB · MP4, MOV hasta 50MB</p>
                         <input
                           type="file"
-                          accept="image/*"
+                          accept="image/*,video/mp4,video/mov,video/webm,video/avi"
                           onChange={handleFileSelect}
                           className="hidden"
                         />
@@ -516,7 +550,7 @@ function AdminGalleryPage() {
                     ) : (
                       <>
                         <Upload className="w-4 h-4" />
-                        Subir Imagen
+                        {selectedFile && isVideoFile(selectedFile) ? 'Subir Video' : 'Subir Imagen'}
                       </>
                     )}
                   </button>

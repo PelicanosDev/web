@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { authenticate, authorize } = require('../middlewares/auth');
 const upload = require('../middlewares/upload');
+const { mediaUpload } = require('../middlewares/upload');
 const {
   getAllGalleryItems,
   getGalleryItemById,
@@ -25,8 +26,8 @@ router.post('/:id/comments', authenticate, addComment);
 router.use(authenticate);
 router.use(authorize('admin', 'coach'));
 
-router.post('/', upload.single('image'), createGalleryItem);
-router.put('/:id', upload.single('image'), updateGalleryItem);
+router.post('/', mediaUpload.single('media'), createGalleryItem);
+router.put('/:id', mediaUpload.single('media'), updateGalleryItem);
 router.put('/:id/tag', tagMembersInPhoto);
 router.delete('/:id', deleteGalleryItem);
 

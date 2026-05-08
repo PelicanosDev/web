@@ -20,6 +20,11 @@ const galleryItemSchema = new mongoose.Schema({
   publicId: {
     type: String
   },
+  mediaType: {
+    type: String,
+    enum: ['image', 'video'],
+    default: 'image'
+  },
   category: {
     type: String,
     enum: ['tournament', 'training', 'social', 'facilities'],

@@ -1,7 +1,7 @@
 const GalleryItem = require('../models/GalleryItem');
 const Member = require('../models/Member');
 const Notification = require('../models/Notification');
-const { uploadImage, deleteImage } = require('../config/cloudinary');
+const { uploadImage, uploadMedia, deleteImage } = require('../config/cloudinary');
 
 // Enriches comments with memberId (null if user has no Member profile)
 const enrichCommentsWithMemberId = async (comments) => {
@@ -95,17 +95,19 @@ const createGalleryItem = async (req, res, next) => {
     if (!req.file) {
       return res.status(400).json({
         success: false,
-        message: 'Please upload an image'
+        message: 'Please upload an image or video'
       });
     }
 
-    const result = await uploadImage(req.file, 'gallery');
+    const result = await uploadMedia(req.file, 'gallery');
+    const isVideo = req.file.mimetype.startsWith('video/');
 
     const item = await GalleryItem.create({
       ...req.body,
       imageUrl: result.url,
-      thumbnailUrl: result.url,
+      thumbnailUrl: result.thumbnailUrl || result.url,
       publicId: result.publicId,
+      mediaType: isVideo ? 'video' : 'image',
       uploadedBy: req.user.id
     });
 
@@ -150,10 +152,12 @@ const updateGalleryItem = async (req, res, next) => {
       if (item.publicId) {
         await deleteImage(item.publicId);
       }
-      
-      const result = await uploadImage(req.file, 'gallery');
+
+      const result = await uploadMedia(req.file, 'gallery');
       req.body.imageUrl = result.url;
+      req.body.thumbnailUrl = result.thumbnailUrl || result.url;
       req.body.publicId = result.publicId;
+      req.body.mediaType = req.file.mimetype.startsWith('video/') ? 'video' : 'image';
     }
 
     item = await GalleryItem.findByIdAndUpdate(
