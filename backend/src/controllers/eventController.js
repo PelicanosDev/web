@@ -271,7 +271,7 @@ const checkInToEvent = async (req, res, next) => {
       date: new Date(),
       checkedIn: true,
       checkInTime: new Date(),
-      checkInLocation: { lat, lng }
+      checkInLocation: { lat: memberLat, lng: memberLng }
     });
     await event.save();
 
