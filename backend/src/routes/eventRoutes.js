@@ -8,12 +8,16 @@ const {
   createEvent,
   updateEvent,
   deleteEvent,
-  registerToEvent
+  registerToEvent,
+  checkInToEvent,
+  getTodayTrainingEvents
 } = require('../controllers/eventController');
 
 router.get('/', getAllEvents);
+router.get('/member/today-training', authenticate, getTodayTrainingEvents);
 router.get('/:id', getEventById);
 router.post('/:id/register', authenticate, registerToEvent);
+router.post('/:id/checkin', authenticate, checkInToEvent);
 
 router.use(authenticate);
 router.use(authorize('admin', 'coach'));

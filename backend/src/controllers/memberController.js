@@ -7,19 +7,13 @@ const getAllMembers = async (req, res, next) => {
     const { status, search, page = 1, limit = 10 } = req.query;
 
     const query = {};
-    
+
     if (status) {
       query['membership.status'] = status;
     }
 
-    let members = await Member.find(query)
-      .populate('userId', 'email profile')
-      .sort({ createdAt: -1 })
-      .limit(limit * 1)
-      .skip((page - 1) * limit);
-
     if (search) {
-      const users = await User.find({
+      const matchingUsers = await User.find({
         $or: [
           { 'profile.firstName': { $regex: search, $options: 'i' } },
           { 'profile.lastName': { $regex: search, $options: 'i' } },
@@ -27,11 +21,16 @@ const getAllMembers = async (req, res, next) => {
         ]
       }).select('_id');
 
-      const userIds = users.map(u => u._id);
-      members = members.filter(m => userIds.some(id => id.equals(m.userId._id)));
+      query.userId = { $in: matchingUsers.map(u => u._id) };
     }
 
     const count = await Member.countDocuments(query);
+
+    const members = await Member.find(query)
+      .populate('userId', 'email profile')
+      .sort({ createdAt: -1 })
+      .limit(limit * 1)
+      .skip((page - 1) * limit);
 
     res.status(200).json({
       success: true,
@@ -486,6 +485,32 @@ const getPublicMemberById = async (req, res, next) => {
   }
 };
 
+const resetMemberPassword = async (req, res, next) => {
+  try {
+    const { newPassword } = req.body;
+
+    if (!newPassword || newPassword.length < 8) {
+      return res.status(400).json({
+        success: false,
+        message: 'La contraseña debe tener al menos 8 caracteres'
+      });
+    }
+
+    const member = await Member.findById(req.params.id).populate('userId');
+    if (!member) {
+      return res.status(404).json({ success: false, message: 'Member not found' });
+    }
+
+    const user = await User.findById(member.userId._id).select('+password');
+    user.password = newPassword; // pre-save hook will hash it
+    await user.save();
+
+    res.status(200).json({ success: true, message: 'Contraseña actualizada exitosamente' });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getAllMembers,
   getMemberById,
@@ -497,5 +522,6 @@ module.exports = {
   assignBadge,
   updateMemberUser,
   permanentlyDeleteMember,
-  addBulkPhysicalRecords
+  addBulkPhysicalRecords,
+  resetMemberPassword
 };

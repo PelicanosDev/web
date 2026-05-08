@@ -11,7 +11,8 @@ const {
   assignBadge,
   updateMemberUser,
   permanentlyDeleteMember,
-  addBulkPhysicalRecords
+  addBulkPhysicalRecords,
+  resetMemberPassword
 } = require('../controllers/memberController');
 
 router.use(authenticate);
@@ -31,5 +32,6 @@ router.put('/:id/user', updateMemberUser);
 router.delete('/:id/permanent', authorize('admin'), permanentlyDeleteMember);
 router.post('/:id/records', addPhysicalRecord);
 router.post('/:id/badges', assignBadge);
+router.put('/:id/reset-password', authorize('admin'), resetMemberPassword);
 
 module.exports = router;

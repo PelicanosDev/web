@@ -17,6 +17,7 @@ const badgeRoutes = require('./routes/badgeRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
 const exerciseRoutes = require('./routes/exerciseRoutes');
 const publicMemberRoutes = require('./routes/publicMemberRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
 
 const app = express();
 
@@ -80,6 +81,7 @@ app.use('/api/badges', badgeRoutes);
 app.use('/api/admin/dashboard', dashboardRoutes);
 app.use('/api/exercises', exerciseRoutes);
 app.use('/api/admin/exercises', exerciseRoutes);
+app.use('/api/member/notifications', notificationRoutes);
 
 app.use((req, res) => {
   res.status(404).json({

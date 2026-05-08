@@ -1,5 +1,15 @@
 const Event = require('../models/Event');
+const Member = require('../models/Member');
 const { uploadImage } = require('../config/cloudinary');
+
+function haversineDistance(lat1, lng1, lat2, lng2) {
+  const R = 6371000;
+  const φ1 = lat1 * Math.PI / 180, φ2 = lat2 * Math.PI / 180;
+  const Δφ = (lat2 - lat1) * Math.PI / 180;
+  const Δλ = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(Δφ / 2) ** 2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
 
 const getAllEvents = async (req, res, next) => {
   try {
@@ -181,11 +191,153 @@ const registerToEvent = async (req, res, next) => {
   }
 };
 
+const checkInToEvent = async (req, res, next) => {
+  try {
+    const event = await Event.findById(req.params.id);
+    if (!event) {
+      return res.status(404).json({ success: false, message: 'Event not found' });
+    }
+
+    if (event.type !== 'training') {
+      return res.status(400).json({ success: false, message: 'Check-in only available for training events' });
+    }
+
+    const now = new Date();
+    const todayDayOfWeek = now.getDay();
+
+    // Validate timing: recurring events are valid on their configured days, fixed events within their date range
+    if (event.recurring?.enabled && event.recurring.daysOfWeek?.length > 0) {
+      if (!event.recurring.daysOfWeek.includes(todayDayOfWeek)) {
+        return res.status(400).json({ success: false, message: 'Este entrenamiento no ocurre hoy' });
+      }
+    } else {
+      const eventStart = new Date(event.date);
+      const eventEnd = new Date(eventStart);
+      eventEnd.setDate(eventEnd.getDate() + (event.totalDays || 1));
+      if (now < eventStart || now > eventEnd) {
+        return res.status(400).json({ success: false, message: 'Check-in is only available during the event dates' });
+      }
+    }
+
+    const member = await Member.findOne({ userId: req.user.id });
+    if (!member) {
+      return res.status(404).json({ success: false, message: 'Member profile not found' });
+    }
+
+    const isParticipant = event.participants.some(
+      p => p.memberId.toString() === member._id.toString() && p.status === 'confirmed'
+    );
+    if (!isParticipant) {
+      return res.status(403).json({ success: false, message: 'You are not a confirmed participant of this event' });
+    }
+
+    if (!event.coordinates?.lat || !event.coordinates?.lng) {
+      return res.status(400).json({ success: false, message: 'Event has no location coordinates configured' });
+    }
+
+    const { lat, lng } = req.body;
+    if (lat === undefined || lng === undefined) {
+      return res.status(400).json({ success: false, message: 'Location coordinates are required' });
+    }
+
+    const distance = haversineDistance(lat, lng, event.coordinates.lat, event.coordinates.lng);
+    if (distance > (event.radius || 50)) {
+      return res.status(400).json({
+        success: false,
+        message: `You are too far from the event location (${Math.round(distance)}m away, max ${event.radius || 50}m)`
+      });
+    }
+
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
+
+    const alreadyCheckedIn = event.dailyAttendance.some(
+      a => a.memberId.toString() === member._id.toString() &&
+        a.date >= todayStart && a.date <= todayEnd &&
+        a.checkedIn
+    );
+    if (alreadyCheckedIn) {
+      return res.status(400).json({ success: false, message: 'Already checked in today' });
+    }
+
+    event.dailyAttendance.push({
+      memberId: member._id,
+      date: new Date(),
+      checkedIn: true,
+      checkInTime: new Date(),
+      checkInLocation: { lat, lng }
+    });
+    await event.save();
+
+    member.attendance.push({
+      date: new Date(),
+      sessionType: 'training',
+      present: true
+    });
+    member.addXP(50);
+    await member.save();
+
+    res.status(200).json({ success: true, message: 'Check-in successful! +50 XP earned' });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getTodayTrainingEvents = async (req, res, next) => {
+  try {
+    const member = await Member.findOne({ userId: req.user.id });
+    if (!member) {
+      return res.status(404).json({ success: false, message: 'Member profile not found' });
+    }
+
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
+
+    const todayDayOfWeek = new Date().getDay(); // 0=Sun...6=Sat
+    const events = await Event.find({ type: 'training' });
+
+    const pendingEvents = events.filter(event => {
+      const isParticipant = event.participants.some(
+        p => p.memberId.toString() === member._id.toString() && p.status === 'confirmed'
+      );
+      if (!isParticipant) return false;
+
+      const alreadyCheckedIn = event.dailyAttendance.some(
+        a => a.memberId.toString() === member._id.toString() &&
+          a.date >= todayStart && a.date <= todayEnd &&
+          a.checkedIn
+      );
+      if (alreadyCheckedIn) return false;
+
+      // Recurring event: active if today is one of the configured days
+      if (event.recurring?.enabled && event.recurring.daysOfWeek?.length > 0) {
+        return event.recurring.daysOfWeek.includes(todayDayOfWeek);
+      }
+
+      // Non-recurring: active if today falls within the event date range
+      const eventStart = new Date(event.date);
+      const eventEnd = new Date(eventStart);
+      eventEnd.setDate(eventEnd.getDate() + (event.totalDays || 1));
+      return eventStart <= todayEnd && eventEnd >= todayStart;
+    });
+
+    res.status(200).json({ success: true, data: pendingEvents });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getAllEvents,
   getEventById,
   createEvent,
   updateEvent,
   deleteEvent,
-  registerToEvent
+  registerToEvent,
+  checkInToEvent,
+  getTodayTrainingEvents
 };

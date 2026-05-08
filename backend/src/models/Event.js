@@ -57,7 +57,37 @@ const eventSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true
-  }
+  },
+  totalDays: {
+    type: Number,
+    default: 1
+  },
+  recurring: {
+    enabled: { type: Boolean, default: false },
+    daysOfWeek: [{ type: Number, min: 0, max: 6 }], // 0=Sun ... 6=Sat
+    startTime: { type: String }  // "HH:mm"
+  },
+  coordinates: {
+    lat: { type: Number },
+    lng: { type: Number }
+  },
+  radius: {
+    type: Number,
+    default: 50
+  },
+  dailyAttendance: [{
+    memberId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Member'
+    },
+    date: { type: Date },
+    checkedIn: { type: Boolean, default: false },
+    checkInTime: { type: Date },
+    checkInLocation: {
+      lat: { type: Number },
+      lng: { type: Number }
+    }
+  }]
 }, {
   timestamps: true
 });

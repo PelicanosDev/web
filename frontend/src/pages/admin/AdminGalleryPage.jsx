@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Upload, X, Image as ImageIcon, Trash2, Eye, Filter } from 'lucide-react';
+import { Upload, X, Image as ImageIcon, Trash2, Eye, Filter, Search, UserPlus } from 'lucide-react';
 import axios from '@/api/axios';
 
 function AdminGalleryPage() {
@@ -17,6 +17,12 @@ function AdminGalleryPage() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [taggedMemberIds, setTaggedMemberIds] = useState([]);
+  const [taggedMemberObjects, setTaggedMemberObjects] = useState([]);
+  const [memberSearchQuery, setMemberSearchQuery] = useState('');
+  const [memberSearchResults, setMemberSearchResults] = useState([]);
+  const [searchingMembers, setSearchingMembers] = useState(false);
+  const searchTimeoutRef = useRef(null);
 
   const categories = [
     { id: 'all', name: 'Todos' },
@@ -40,6 +46,42 @@ function AdminGalleryPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleMemberSearch = (query) => {
+    setMemberSearchQuery(query);
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    if (!query.trim()) {
+      setMemberSearchResults([]);
+      return;
+    }
+    searchTimeoutRef.current = setTimeout(async () => {
+      setSearchingMembers(true);
+      try {
+        const response = await axios.get('/admin/members', { params: { search: query, limit: 10 } });
+        const results = (response.data.data || []).filter(
+          m => !taggedMemberIds.includes(m._id)
+        );
+        setMemberSearchResults(results);
+      } catch {
+        setMemberSearchResults([]);
+      } finally {
+        setSearchingMembers(false);
+      }
+    }, 300);
+  };
+
+  const addTaggedMember = (member) => {
+    if (taggedMemberIds.includes(member._id)) return;
+    setTaggedMemberIds(prev => [...prev, member._id]);
+    setTaggedMemberObjects(prev => [...prev, member]);
+    setMemberSearchQuery('');
+    setMemberSearchResults([]);
+  };
+
+  const removeTaggedMember = (memberId) => {
+    setTaggedMemberIds(prev => prev.filter(id => id !== memberId));
+    setTaggedMemberObjects(prev => prev.filter(m => m._id !== memberId));
   };
 
   const handleFileSelect = (e) => {
@@ -76,6 +118,7 @@ function AdminGalleryPage() {
         const tagsArray = uploadData.tags.split(',').map(t => t.trim());
         tagsArray.forEach(tag => formData.append('tags[]', tag));
       }
+      taggedMemberIds.forEach(id => formData.append('taggedMembers[]', id));
 
       await axios.post('/gallery', formData, {
         headers: {
@@ -119,6 +162,10 @@ function AdminGalleryPage() {
     });
     setSelectedFile(null);
     setPreviewUrl(null);
+    setTaggedMemberIds([]);
+    setTaggedMemberObjects([]);
+    setMemberSearchQuery('');
+    setMemberSearchResults([]);
   };
 
   const getCategoryName = (categoryId) => {
@@ -388,6 +435,62 @@ function AdminGalleryPage() {
                     className="w-full px-4 py-3 border-2 border-slate-200 focus:border-primary-500 outline-none transition-colors text-slate-900 bg-white"
                     placeholder="Ej: verano, playa, competencia"
                   />
+                </div>
+
+                {/* Tagged Members */}
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">
+                    Etiquetar Miembros
+                  </label>
+                  <div className="relative">
+                    <div className="flex items-center border-2 border-slate-200 focus-within:border-primary-500 transition-colors">
+                      <Search className="w-4 h-4 text-slate-400 ml-3 flex-shrink-0" />
+                      <input
+                        type="text"
+                        value={memberSearchQuery}
+                        onChange={(e) => handleMemberSearch(e.target.value)}
+                        className="flex-1 px-3 py-3 outline-none text-slate-900 bg-white"
+                        placeholder="Buscar miembro por nombre..."
+                      />
+                      {searchingMembers && (
+                        <div className="w-4 h-4 border-2 border-slate-200 border-t-primary-500 rounded-full animate-spin mr-3" />
+                      )}
+                    </div>
+                    {memberSearchResults.length > 0 && (
+                      <div className="absolute z-10 w-full bg-white border-2 border-slate-200 border-t-0 shadow-lg max-h-48 overflow-y-auto">
+                        {memberSearchResults.map((member) => (
+                          <button
+                            key={member._id}
+                            type="button"
+                            onClick={() => addTaggedMember(member)}
+                            className="w-full text-left px-4 py-2.5 hover:bg-primary-50 flex items-center gap-2 transition-colors"
+                          >
+                            <UserPlus className="w-4 h-4 text-primary-500 flex-shrink-0" />
+                            <span className="text-sm text-slate-900">
+                              {member.userId?.profile?.firstName} {member.userId?.profile?.lastName}
+                            </span>
+                            <span className="text-xs text-slate-400 ml-auto">{member.memberNumber}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  {taggedMemberObjects.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      {taggedMemberObjects.map((member) => (
+                        <span key={member._id} className="inline-flex items-center gap-1.5 bg-primary-50 text-primary-700 text-xs font-bold px-3 py-1.5">
+                          {member.userId?.profile?.firstName} {member.userId?.profile?.lastName}
+                          <button
+                            type="button"
+                            onClick={() => removeTaggedMember(member._id)}
+                            className="hover:text-primary-900 transition-colors"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 {/* Buttons */}

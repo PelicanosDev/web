@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Plus, X, ClipboardList, Trophy, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Plus, X, ClipboardList, Trophy, ChevronLeft, ChevronRight, KeyRound } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from '@/api/axios';
 
@@ -29,6 +29,10 @@ function MembersPage() {
   const [bulkRecordsData, setBulkRecordsData] = useState({});
   const [bulkStep, setBulkStep] = useState(1);
   const [bulkSubmitting, setBulkSubmitting] = useState(false);
+  const [resetPasswordTarget, setResetPasswordTarget] = useState(null); // { _id, name }
+  const [newPassword, setNewPassword] = useState('');
+  const [resettingPassword, setResettingPassword] = useState(false);
+  const [resetError, setResetError] = useState('');
 
   useEffect(() => {
     fetchMembers();
@@ -112,6 +116,25 @@ function MembersPage() {
         ? prev.filter(id => id !== memberId)
         : [...prev, memberId]
     );
+  };
+
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+    if (newPassword.length < 8) {
+      setResetError('Mínimo 8 caracteres');
+      return;
+    }
+    setResettingPassword(true);
+    setResetError('');
+    try {
+      await axios.put(`/admin/members/${resetPasswordTarget._id}/reset-password`, { newPassword });
+      setResetPasswordTarget(null);
+      setNewPassword('');
+    } catch (error) {
+      setResetError(error.response?.data?.message || 'Error al cambiar la contraseña');
+    } finally {
+      setResettingPassword(false);
+    }
   };
 
   const handleBulkRecordChange = (memberId, exerciseId, value) => {
@@ -300,12 +323,36 @@ function MembersPage() {
                     </span>
                   </td>
                   <td className="py-3 px-4">
-                    <Link
-                      to={`/admin/members/${member._id}`}
-                      className="text-xs font-bold uppercase tracking-widest text-primary-500 hover:text-primary-600 transition-colors"
-                    >
-                      Ver Detalles
-                    </Link>
+                    <div className="flex items-center gap-3">
+                      <Link
+                        to={`/admin/members/${member._id}`}
+                        className="text-xs font-bold uppercase tracking-widest text-primary-500 hover:text-primary-600 transition-colors"
+                      >
+                        Ver Detalles
+                      </Link>
+                      <Link
+                        to={`/members/${member._id}`}
+                        className="text-xs font-bold uppercase tracking-widest text-slate-400 hover:text-slate-600 transition-colors"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Perfil Público
+                      </Link>
+                      <button
+                        onClick={() => {
+                          setResetPasswordTarget({
+                            _id: member._id,
+                            name: `${member.userId?.profile?.firstName} ${member.userId?.profile?.lastName}`
+                          });
+                          setNewPassword('');
+                          setResetError('');
+                        }}
+                        className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 transition-colors"
+                        title="Cambiar contraseña"
+                      >
+                        <KeyRound className="w-4 h-4" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -741,6 +788,83 @@ function MembersPage() {
                   </button>
                 )}
               </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Reset Password Modal */}
+      <AnimatePresence>
+        {resetPasswordTarget && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+            onClick={() => !resettingPassword && setResetPasswordTarget(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.97, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.97, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white shadow-2xl max-w-md w-full"
+            >
+              <div className="border-b border-slate-200 px-6 py-4 flex items-center justify-between">
+                <div>
+                  <span className="inline-block text-amber-600 text-xs font-bold uppercase tracking-widest bg-amber-50 px-2 py-1 mb-1">
+                    Seguridad
+                  </span>
+                  <h2 className="font-display font-black uppercase text-slate-900 text-xl leading-none">
+                    Cambiar Contraseña
+                  </h2>
+                  <p className="text-slate-500 text-sm mt-1">{resetPasswordTarget.name}</p>
+                </div>
+                <button
+                  onClick={() => setResetPasswordTarget(null)}
+                  disabled={resettingPassword}
+                  className="p-2 hover:bg-slate-100 transition-colors disabled:opacity-50"
+                >
+                  <X className="w-5 h-5 text-slate-500" />
+                </button>
+              </div>
+              <form onSubmit={handleResetPassword} className="p-6 space-y-4">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">
+                    Nueva Contraseña *
+                  </label>
+                  <input
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => { setNewPassword(e.target.value); setResetError(''); }}
+                    className="w-full px-4 py-3 border-2 border-slate-200 focus:border-amber-500 outline-none transition-colors text-slate-900 bg-white"
+                    placeholder="Mínimo 8 caracteres"
+                    required
+                    minLength={8}
+                    autoFocus
+                  />
+                  {resetError && (
+                    <p className="text-red-600 text-xs font-bold mt-1">{resetError}</p>
+                  )}
+                </div>
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setResetPasswordTarget(null)}
+                    disabled={resettingPassword}
+                    className="flex-1 border-2 border-slate-200 text-slate-700 font-display font-bold uppercase tracking-wide px-5 py-2.5 hover:border-slate-400 transition-all disabled:opacity-50"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={resettingPassword || newPassword.length < 8}
+                    className="flex-1 bg-amber-500 text-white font-display font-bold uppercase tracking-wide px-5 py-2.5 hover:bg-amber-600 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {resettingPassword ? 'Guardando...' : 'Cambiar Contraseña'}
+                  </button>
+                </div>
+              </form>
             </motion.div>
           </motion.div>
         )}

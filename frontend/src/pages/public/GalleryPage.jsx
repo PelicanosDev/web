@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, User, Heart, MessageCircle, Share2, Calendar, ImageOff, Send } from 'lucide-react';
 import axios from '@/api/axios';
@@ -16,6 +16,7 @@ const categories = [
 
 function GalleryPage() {
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [selectedImage, setSelectedImage] = useState(null);
   const [filter, setFilter] = useState('all');
   const [images, setImages] = useState([]);
@@ -26,10 +27,20 @@ function GalleryPage() {
   const [newComment, setNewComment] = useState('');
   const [loadingComments, setLoadingComments] = useState(false);
   const [submittingComment, setSubmittingComment] = useState(false);
+  const [copyToast, setCopyToast] = useState(false);
 
   useEffect(() => {
     fetchImages();
   }, [filter]);
+
+  useEffect(() => {
+    const postId = searchParams.get('post');
+    if (postId) {
+      axios.get(`/gallery/${postId}`)
+        .then(res => setSelectedImage(res.data.data))
+        .catch(() => {});
+    }
+  }, []);
 
   const fetchImages = async () => {
     setLoading(true);
@@ -119,6 +130,19 @@ function GalleryPage() {
     return image.likes.some(like => like._id === user.id);
   };
 
+  const closeLightbox = () => {
+    setSelectedImage(null);
+    setSearchParams({});
+  };
+
+  const handleShare = (image) => {
+    const url = `${window.location.origin}/gallery?post=${image._id}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopyToast(true);
+      setTimeout(() => setCopyToast(false), 2500);
+    });
+  };
+
   return (
     <div className="bg-slate-50 min-h-screen">
       {/* ── HEADER ── */}
@@ -177,9 +201,23 @@ function GalleryPage() {
         </div>
       </div>
 
+      {/* ── COPY TOAST ── */}
+      <AnimatePresence>
+        {copyToast && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] bg-slate-900 text-white text-sm font-bold px-5 py-3 shadow-xl"
+          >
+            ¡Enlace copiado!
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* ── FEED ── */}
       <section className="py-10">
-        <div className="max-w-2xl mx-auto px-4">
+        <div className="max-w-5xl mx-auto px-4">
           {loading ? (
             <div className="space-y-6">
               {[1, 2, 3].map((i) => (
@@ -211,7 +249,7 @@ function GalleryPage() {
               </p>
             </div>
           ) : (
-            <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {images.map((image, index) => (
                 <motion.article
                   key={image._id}
@@ -322,6 +360,7 @@ function GalleryPage() {
                       <span>{image.comments?.length || 0} Comentarios</span>
                     </button>
                     <button
+                      onClick={() => handleShare(image)}
                       className="flex items-center gap-2 text-slate-500 hover:text-primary-500 transition-colors ml-auto cursor-pointer"
                       aria-label="Compartir"
                     >
@@ -344,11 +383,11 @@ function GalleryPage() {
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
             className="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4"
-            onClick={() => setSelectedImage(null)}
+            onClick={closeLightbox}
           >
             <button
               className="absolute top-4 right-4 w-11 h-11 bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors cursor-pointer"
-              onClick={() => setSelectedImage(null)}
+              onClick={closeLightbox}
               aria-label="Cerrar imagen"
             >
               <X className="w-6 h-6" />

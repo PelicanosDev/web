@@ -28,6 +28,7 @@ import MemberDashboard from '@/pages/member/MemberDashboard';
 import MemberProfilePage from '@/pages/member/MemberProfilePage';
 import MemberTournamentsPage from '@/pages/member/MemberTournamentsPage';
 import MemberPhotosPage from '@/pages/member/MemberPhotosPage';
+import MemberEventsPage from '@/pages/member/MemberEventsPage';
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { user, loading } = useAuth();
@@ -97,6 +98,7 @@ function AppRouter() {
         <Route path="profile" element={<MemberProfilePage />} />
         <Route path="tournaments" element={<MemberTournamentsPage />} />
         <Route path="photos" element={<MemberPhotosPage />} />
+        <Route path="events" element={<MemberEventsPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

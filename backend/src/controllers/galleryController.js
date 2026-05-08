@@ -1,5 +1,6 @@
 const GalleryItem = require('../models/GalleryItem');
 const Member = require('../models/Member');
+const Notification = require('../models/Notification');
 const { uploadImage, deleteImage } = require('../config/cloudinary');
 
 // Enriches comments with memberId (null if user has no Member profile)
@@ -107,6 +108,23 @@ const createGalleryItem = async (req, res, next) => {
       publicId: result.publicId,
       uploadedBy: req.user.id
     });
+
+    // Send notifications to tagged members
+    if (item.taggedMembers && item.taggedMembers.length > 0) {
+      const taggedMemberDocs = await Member.find(
+        { _id: { $in: item.taggedMembers } },
+        'userId'
+      );
+      const notifications = taggedMemberDocs.map(m => ({
+        userId: m.userId,
+        type: 'gallery_tag',
+        message: `Te etiquetaron en una foto: "${item.title}"`,
+        data: { galleryItemId: item._id, title: item.title }
+      }));
+      if (notifications.length > 0) {
+        await Notification.insertMany(notifications);
+      }
+    }
 
     res.status(201).json({
       success: true,

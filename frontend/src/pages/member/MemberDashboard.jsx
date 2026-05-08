@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { TrendingUp, Award, Calendar, Users, Trophy } from 'lucide-react';
+import { TrendingUp, Award, Calendar, Users, Trophy, MapPin, CheckCircle, AlertCircle } from 'lucide-react';
 import axios from '@/api/axios';
 
 function MemberDashboard() {
@@ -10,6 +10,8 @@ function MemberDashboard() {
   const [events, setEvents] = useState([]);
   const [tournaments, setTournaments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [todayTrainingEvents, setTodayTrainingEvents] = useState([]);
+  const [checkInStatus, setCheckInStatus] = useState({});
 
   useEffect(() => {
     fetchMemberData();
@@ -17,12 +19,13 @@ function MemberDashboard() {
 
   const fetchMemberData = async () => {
     try {
-      const [profileRes, statsRes, progressRes, eventsRes, tournamentsRes] = await Promise.all([
+      const [profileRes, statsRes, progressRes, eventsRes, tournamentsRes, todayTrainingRes] = await Promise.all([
         axios.get('/member/profile'),
         axios.get('/member/stats'),
         axios.get('/member/progress'),
         axios.get('/events').catch(() => ({ data: { data: [] } })),
-        axios.get('/tournaments').catch(() => ({ data: { data: [] } }))
+        axios.get('/tournaments').catch(() => ({ data: { data: [] } })),
+        axios.get('/events/member/today-training').catch(() => ({ data: { data: [] } }))
       ]);
 
       setProfile(profileRes.data.data);
@@ -30,11 +33,36 @@ function MemberDashboard() {
       setProgress(progressRes.data.data);
       setEvents(eventsRes.data.data || []);
       setTournaments(tournamentsRes.data.data || []);
+      setTodayTrainingEvents(todayTrainingRes.data.data || []);
     } catch (error) {
       console.error('Error fetching member data:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCheckIn = (eventId) => {
+    setCheckInStatus(prev => ({ ...prev, [eventId]: 'loading' }));
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          await axios.post(`/events/${eventId}/checkin`, {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          });
+          setCheckInStatus(prev => ({ ...prev, [eventId]: 'success' }));
+          setTodayTrainingEvents(prev => prev.filter(e => e._id !== eventId));
+        } catch (error) {
+          setCheckInStatus(prev => ({
+            ...prev,
+            [eventId]: 'error:' + (error.response?.data?.message || 'Error al registrar asistencia')
+          }));
+        }
+      },
+      () => {
+        setCheckInStatus(prev => ({ ...prev, [eventId]: 'error:No se pudo obtener tu ubicación' }));
+      }
+    );
   };
 
   if (loading) {
@@ -58,6 +86,39 @@ function MemberDashboard() {
 
   return (
     <div className="space-y-6">
+      {/* Training Check-in Banner */}
+      {todayTrainingEvents.length > 0 && todayTrainingEvents.map((event) => {
+        const status = checkInStatus[event._id];
+        const isError = status?.startsWith('error:');
+        return (
+          <div key={event._id} className="bg-sky-900 border-l-4 border-sky-400 p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <MapPin className="w-5 h-5 text-sky-400 flex-shrink-0" />
+              <div>
+                <p className="text-xs font-bold uppercase tracking-widest text-sky-400 mb-0.5">Entrenamiento Hoy</p>
+                <p className="font-bold text-white">{event.title}</p>
+                {isError && (
+                  <p className="text-xs text-red-300 mt-1 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />{status.replace('error:', '')}
+                  </p>
+                )}
+              </div>
+            </div>
+            <button
+              onClick={() => handleCheckIn(event._id)}
+              disabled={status === 'loading'}
+              className="inline-flex items-center gap-2 bg-sky-500 text-white font-display font-bold uppercase tracking-wide px-4 py-2 hover:bg-sky-600 active:scale-95 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+            >
+              {status === 'loading' ? (
+                <><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Marcando...</>
+              ) : (
+                <><CheckCircle className="w-4 h-4" />Marcar Asistencia</>
+              )}
+            </button>
+          </div>
+        );
+      })}
+
       {/* Page Header */}
       <div>
         <span className="inline-block text-primary-600 text-xs font-bold uppercase tracking-widest bg-primary-50 px-3 py-1.5 mb-3">
@@ -114,12 +175,22 @@ function MemberDashboard() {
           <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">
             Gana XP completando logros y obteniendo insignias
           </p>
-          <Link
-            to="/member/profile"
-            className="inline-flex items-center gap-2 bg-primary-500 text-white font-display font-bold uppercase tracking-wide px-5 py-2.5 hover:bg-primary-600 active:scale-95 transition-all cursor-pointer"
-          >
-            Ver Mi Perfil
-          </Link>
+          <div className="flex flex-wrap gap-3">
+            <Link
+              to="/member/profile"
+              className="inline-flex items-center gap-2 bg-primary-500 text-white font-display font-bold uppercase tracking-wide px-5 py-2.5 hover:bg-primary-600 active:scale-95 transition-all cursor-pointer"
+            >
+              Ver Mi Perfil
+            </Link>
+            {profile?._id && (
+              <Link
+                to={`/members/${profile._id}`}
+                className="inline-flex items-center gap-2 border-2 border-primary-500 text-primary-400 font-display font-bold uppercase tracking-wide px-5 py-2.5 hover:bg-primary-500 hover:text-white active:scale-95 transition-all cursor-pointer"
+              >
+                Ver Perfil Público
+              </Link>
+            )}
+          </div>
         </div>
       </div>
 

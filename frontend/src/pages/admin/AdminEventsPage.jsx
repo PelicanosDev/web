@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Calendar, MapPin, Users, Edit, Trash2, X, Clock } from 'lucide-react';
+import { Plus, Calendar, MapPin, Users, Edit, Trash2, X, Clock, Navigation } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from '@/api/axios';
 import dayjs from 'dayjs';
@@ -18,6 +18,13 @@ function AdminEventsPage() {
     location: '',
     isPublic: true,
     maxParticipants: '',
+    totalDays: 1,
+    coordinatesLat: '',
+    coordinatesLng: '',
+    radius: 50,
+    recurringEnabled: false,
+    recurringDays: [],
+    recurringStartTime: '',
   });
 
   useEffect(() => {
@@ -26,7 +33,7 @@ function AdminEventsPage() {
 
   const fetchEvents = async () => {
     try {
-      const response = await axios.get('/events');
+      const response = await axios.get('/admin/events', { params: { limit: 200 } });
       setEvents(response.data.data);
     } catch (error) {
       console.error('Error fetching events:', error);
@@ -38,10 +45,30 @@ function AdminEventsPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      const payload = { ...formData };
+      if (formData.type === 'training' && formData.coordinatesLat && formData.coordinatesLng) {
+        payload.coordinates = {
+          lat: parseFloat(formData.coordinatesLat),
+          lng: parseFloat(formData.coordinatesLng)
+        };
+      }
+      delete payload.coordinatesLat;
+      delete payload.coordinatesLng;
+      if (formData.type === 'training') {
+        payload.recurring = {
+          enabled: formData.recurringEnabled,
+          daysOfWeek: formData.recurringDays.map(Number),
+          startTime: formData.recurringStartTime
+        };
+      }
+      delete payload.recurringEnabled;
+      delete payload.recurringDays;
+      delete payload.recurringStartTime;
+
       if (editingEvent) {
-        await axios.put(`/admin/events/${editingEvent._id}`, formData);
+        await axios.put(`/admin/events/${editingEvent._id}`, payload);
       } else {
-        await axios.post('/admin/events', formData);
+        await axios.post('/admin/events', payload);
       }
       fetchEvents();
       handleCloseModal();
@@ -73,6 +100,13 @@ function AdminEventsPage() {
       location: event.location,
       isPublic: event.isPublic,
       maxParticipants: event.maxParticipants || '',
+      totalDays: event.totalDays || 1,
+      coordinatesLat: event.coordinates?.lat || '',
+      coordinatesLng: event.coordinates?.lng || '',
+      radius: event.radius || 50,
+      recurringEnabled: event.recurring?.enabled || false,
+      recurringDays: event.recurring?.daysOfWeek?.map(String) || [],
+      recurringStartTime: event.recurring?.startTime || '',
     });
     setShowModal(true);
   };
@@ -89,6 +123,23 @@ function AdminEventsPage() {
       location: '',
       isPublic: true,
       maxParticipants: '',
+      totalDays: 1,
+      coordinatesLat: '',
+      coordinatesLng: '',
+      radius: 50,
+      recurringEnabled: false,
+      recurringDays: [],
+      recurringStartTime: '',
+    });
+  };
+
+  const handleUseMyLocation = () => {
+    navigator.geolocation.getCurrentPosition((position) => {
+      setFormData(prev => ({
+        ...prev,
+        coordinatesLat: position.coords.latitude.toString(),
+        coordinatesLng: position.coords.longitude.toString()
+      }));
     });
   };
 
@@ -219,14 +270,29 @@ function AdminEventsPage() {
                   </div>
 
                   <div className="space-y-2 text-sm text-slate-500">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-slate-400" />
-                      <span>{dayjs(event.date).format('D [de] MMMM[,] YYYY')}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-4 h-4 text-slate-400" />
-                      <span>{dayjs(event.date).format('h:mm A')}</span>
-                    </div>
+                    {event.recurring?.enabled ? (
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-sky-400" />
+                        <span className="text-sky-600 font-semibold">
+                          {['Dom','Lun','Mar','Mié','Jue','Vie','Sáb']
+                            .filter((_, i) => event.recurring.daysOfWeek?.includes(i))
+                            .join(', ')}
+                          {event.recurring.startTime ? ` · ${event.recurring.startTime}` : ''}
+                          {' — Recurrente'}
+                        </span>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex items-center gap-2">
+                          <Calendar className="w-4 h-4 text-slate-400" />
+                          <span>{dayjs(event.date).format('D [de] MMMM[,] YYYY')}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Clock className="w-4 h-4 text-slate-400" />
+                          <span>{dayjs(event.date).format('h:mm A')}</span>
+                        </div>
+                      </>
+                    )}
                     <div className="flex items-center gap-2">
                       <MapPin className="w-4 h-4 text-slate-400" />
                       <span>{event.location}</span>
@@ -465,6 +531,138 @@ function AdminEventsPage() {
                     Hacer este evento público (visible para todos los miembros)
                   </label>
                 </div>
+
+                {/* Training-specific fields */}
+                {formData.type === 'training' && (
+                  <div className="space-y-4 bg-sky-50 border-2 border-sky-200 p-4">
+                    <p className="text-xs font-bold uppercase tracking-widest text-sky-600">Opciones de Entrenamiento</p>
+
+                    {/* Total Days */}
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">
+                        Duración (días)
+                      </label>
+                      <input
+                        type="number"
+                        name="totalDays"
+                        value={formData.totalDays}
+                        onChange={handleChange}
+                        min="1"
+                        className="w-full px-4 py-3 border-2 border-slate-200 focus:border-primary-500 outline-none transition-colors text-slate-900 bg-white"
+                      />
+                    </div>
+
+                    {/* Coordinates */}
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">
+                        Coordenadas para Check-in
+                      </label>
+                      <div className="grid grid-cols-2 gap-3 mb-2">
+                        <input
+                          type="number"
+                          step="any"
+                          name="coordinatesLat"
+                          value={formData.coordinatesLat}
+                          onChange={handleChange}
+                          placeholder="Latitud"
+                          className="w-full px-4 py-3 border-2 border-slate-200 focus:border-primary-500 outline-none transition-colors text-slate-900 bg-white"
+                        />
+                        <input
+                          type="number"
+                          step="any"
+                          name="coordinatesLng"
+                          value={formData.coordinatesLng}
+                          onChange={handleChange}
+                          placeholder="Longitud"
+                          className="w-full px-4 py-3 border-2 border-slate-200 focus:border-primary-500 outline-none transition-colors text-slate-900 bg-white"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleUseMyLocation}
+                        className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-sky-600 hover:text-sky-700 transition-colors"
+                      >
+                        <Navigation className="w-3.5 h-3.5" />
+                        Usar mi ubicación actual
+                      </button>
+                    </div>
+
+                    {/* Radius */}
+                    <div>
+                      <label className="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">
+                        Radio de Check-in (metros)
+                      </label>
+                      <input
+                        type="number"
+                        name="radius"
+                        value={formData.radius}
+                        onChange={handleChange}
+                        min="10"
+                        className="w-full px-4 py-3 border-2 border-slate-200 focus:border-primary-500 outline-none transition-colors text-slate-900 bg-white"
+                      />
+                    </div>
+
+                    {/* Recurring */}
+                    <div>
+                      <div className="flex items-center gap-3 mb-3">
+                        <input
+                          type="checkbox"
+                          id="recurringEnabled"
+                          checked={formData.recurringEnabled}
+                          onChange={(e) => setFormData(prev => ({ ...prev, recurringEnabled: e.target.checked }))}
+                          className="w-4 h-4 text-sky-500 focus:ring-2 focus:ring-sky-200"
+                        />
+                        <label htmlFor="recurringEnabled" className="text-sm font-bold text-slate-700 uppercase tracking-wide">
+                          Entrenamiento recurrente (sin fecha de fin)
+                        </label>
+                      </div>
+                      {formData.recurringEnabled && (
+                        <div className="space-y-3 pl-7">
+                          <div>
+                            <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Días de la semana</p>
+                            <div className="flex flex-wrap gap-2">
+                              {['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'].map((day, idx) => (
+                                <label key={idx} className={`flex items-center justify-center w-12 h-10 cursor-pointer text-xs font-bold uppercase transition-colors ${
+                                  formData.recurringDays.includes(String(idx))
+                                    ? 'bg-sky-500 text-white'
+                                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                                }`}>
+                                  <input
+                                    type="checkbox"
+                                    value={String(idx)}
+                                    checked={formData.recurringDays.includes(String(idx))}
+                                    onChange={(e) => {
+                                      const v = e.target.value;
+                                      setFormData(prev => ({
+                                        ...prev,
+                                        recurringDays: prev.recurringDays.includes(v)
+                                          ? prev.recurringDays.filter(d => d !== v)
+                                          : [...prev.recurringDays, v]
+                                      }));
+                                    }}
+                                    className="hidden"
+                                  />
+                                  {day}
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">
+                              Hora de inicio
+                            </label>
+                            <input
+                              type="time"
+                              value={formData.recurringStartTime}
+                              onChange={(e) => setFormData(prev => ({ ...prev, recurringStartTime: e.target.value }))}
+                              className="w-full px-4 py-3 border-2 border-slate-200 focus:border-primary-500 outline-none transition-colors text-slate-900 bg-white"
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {/* Buttons */}
                 <div className="flex gap-3 pt-4 border-t border-slate-100">
