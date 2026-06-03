@@ -200,35 +200,38 @@ const getPlaylist = async (req, res, next) => {
       return res.json({ success: true, data: { connected: false, tracks: [] } });
     }
 
-    const token = await getValidToken();
-    const { data } = await axios.get(
-      `https://api.spotify.com/v1/playlists/${config.playlistId}/tracks?fields=items(track(id,name,uri,artists,album(name,images),duration_ms))&limit=50`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
+    // Base connection info — always return even if track fetch fails
+    const base = {
+      connected: true,
+      playlistId: config.playlistId,
+      playlistName: config.playlistName,
+      playlistUrl: config.playlistUrl,
+      playlistImageUrl: config.playlistImageUrl,
+    };
 
-    const tracks = (data.items || [])
-      .filter(item => item.track)
-      .map(item => ({
-        id: item.track.id,
-        uri: item.track.uri,
-        name: item.track.name,
-        artist: item.track.artists.map(a => a.name).join(', '),
-        album: item.track.album.name,
-        imageUrl: item.track.album.images?.[1]?.url || item.track.album.images?.[0]?.url || null,
-        durationMs: item.track.duration_ms,
-      }));
+    let tracks = [];
+    try {
+      const token = await getValidToken();
+      const { data } = await axios.get(
+        `https://api.spotify.com/v1/playlists/${config.playlistId}/tracks?fields=items(track(id,name,uri,artists,album(name,images),duration_ms))&limit=50`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      tracks = (data.items || [])
+        .filter(item => item.track)
+        .map(item => ({
+          id: item.track.id,
+          uri: item.track.uri,
+          name: item.track.name,
+          artist: item.track.artists.map(a => a.name).join(', '),
+          album: item.track.album.name,
+          imageUrl: item.track.album.images?.[1]?.url || item.track.album.images?.[0]?.url || null,
+          durationMs: item.track.duration_ms,
+        }));
+    } catch (spotifyErr) {
+      console.error('Failed to fetch playlist tracks:', spotifyErr.response?.data || spotifyErr.message);
+    }
 
-    res.json({
-      success: true,
-      data: {
-        connected: true,
-        playlistId: config.playlistId,
-        playlistName: config.playlistName,
-        playlistUrl: config.playlistUrl,
-        playlistImageUrl: config.playlistImageUrl,
-        tracks,
-      }
-    });
+    res.json({ success: true, data: { ...base, tracks } });
   } catch (error) {
     if (error.message === 'Spotify no conectado') {
       return res.json({ success: true, data: { connected: false, tracks: [] } });
