@@ -4,7 +4,7 @@ const SpotifyConfig = require('../models/SpotifyConfig');
 const CLIENT_ID = process.env.SPOTIFY_CLIENT_ID;
 const CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET;
 const REDIRECT_URI = process.env.SPOTIFY_REDIRECT_URI;
-const SCOPES = 'playlist-modify-public playlist-modify-private playlist-read-private user-read-private';
+const SCOPES = 'playlist-modify-public playlist-modify-private playlist-read-private';
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -63,11 +63,6 @@ const handleCallback = async (req, res, next) => {
     const accessToken = tokenData.access_token;
     const expiresAt = new Date(Date.now() + tokenData.expires_in * 1000);
 
-    // Get user profile to know the userId for playlist creation
-    const { data: profile } = await axios.get('https://api.spotify.com/v1/me', {
-      headers: { Authorization: `Bearer ${accessToken}` }
-    });
-
     // Check if we already have a playlist saved
     let config = await SpotifyConfig.findOne();
     let playlistId = config?.playlistId;
@@ -76,12 +71,12 @@ const handleCallback = async (req, res, next) => {
     let playlistImageUrl = config?.playlistImageUrl;
 
     if (!playlistId) {
-      // Create the playlist on the club's account
+      // Create the playlist using /me/playlists (no user ID needed)
       const { data: playlist } = await axios.post(
-        `https://api.spotify.com/v1/users/${profile.id}/playlists`,
+        'https://api.spotify.com/v1/me/playlists',
         {
-          name: 'Pelícanos Vóley Club 🏐',
-          description: 'La playlist oficial del Club Pelícanos. ¡Agrega tus canciones favoritas!',
+          name: 'Pelicanos Voley Club',
+          description: 'La playlist oficial del Club Pelicanos. Agrega tus canciones favoritas!',
           public: true,
         },
         { headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' } }
