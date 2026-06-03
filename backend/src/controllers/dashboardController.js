@@ -137,7 +137,7 @@ const getUpcomingEvents = async (req, res, next) => {
       id: event._id,
       title: event.title,
       date: event.date,
-      time: event.date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+      time: `${event.date.getHours().toString().padStart(2, '0')}:${event.date.getMinutes().toString().padStart(2, '0')}`,
       participants: event.getConfirmedCount(),
       type: event.type
     }));
@@ -151,9 +151,43 @@ const getUpcomingEvents = async (req, res, next) => {
   }
 };
 
+const getNextBirthdays = async (req, res, next) => {
+  try {
+    const today = new Date();
+    const members = await Member.find()
+      .populate('userId', 'profile.firstName profile.lastName profile.dateOfBirth profile.avatar');
+
+    const withBirthdays = members
+      .filter(m => m.userId?.profile?.dateOfBirth)
+      .map(m => {
+        const dob = new Date(m.userId.profile.dateOfBirth);
+        let next = new Date(today.getFullYear(), dob.getMonth(), dob.getDate());
+        if (next <= today) next.setFullYear(today.getFullYear() + 1);
+        const daysUntil = Math.ceil((next - today) / (1000 * 60 * 60 * 24));
+        return {
+          memberId: m._id,
+          name: `${m.userId.profile.firstName} ${m.userId.profile.lastName}`,
+          avatar: m.userId.profile.avatar || null,
+          dateOfBirth: m.userId.profile.dateOfBirth,
+          nextBirthday: next,
+          daysUntil,
+        };
+      })
+      .sort((a, b) => a.daysUntil - b.daysUntil);
+
+    res.status(200).json({
+      success: true,
+      data: withBirthdays.slice(0, 5)
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getDashboardStats,
   getMembershipGrowth,
   getRecentRegistrations,
-  getUpcomingEvents
+  getUpcomingEvents,
+  getNextBirthdays
 };

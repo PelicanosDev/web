@@ -9,7 +9,8 @@ const {
   refreshToken,
   getMe,
   changePassword,
-  uploadAvatar
+  uploadAvatar,
+  acceptTreatment
 } = require('../controllers/authController');
 
 router.post('/register', register);
@@ -19,5 +20,6 @@ router.post('/refresh', refreshToken);
 router.get('/me', authenticate, getMe);
 router.put('/change-password', authenticate, changePassword);
 router.post('/upload-avatar', authenticate, upload.single('avatar'), uploadAvatar);
+router.put('/accept-treatment', authenticate, acceptTreatment);
 
 module.exports = router;

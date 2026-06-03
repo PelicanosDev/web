@@ -7,6 +7,7 @@ const {
   getAllGalleryItems,
   getGalleryItemById,
   createGalleryItem,
+  createGalleryItemAsMember,
   updateGalleryItem,
   deleteGalleryItem,
   likeGalleryItem,
@@ -22,6 +23,9 @@ router.get('/member/:memberId/tagged', getPhotosByTaggedMember);
 router.get('/:id/comments', getComments);
 router.post('/:id/like', authenticate, likeGalleryItem);
 router.post('/:id/comments', authenticate, addComment);
+
+// Members can upload their own photos
+router.post('/member-upload', authenticate, authorize('member', 'admin', 'coach'), mediaUpload.single('media'), createGalleryItemAsMember);
 
 router.use(authenticate);
 router.use(authorize('admin', 'coach'));

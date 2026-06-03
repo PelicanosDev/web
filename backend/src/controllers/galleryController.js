@@ -378,10 +378,44 @@ const getComments = async (req, res, next) => {
   }
 };
 
+const createGalleryItemAsMember = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'Por favor sube una imagen o video'
+      });
+    }
+
+    const result = await uploadMedia(req.file, 'gallery');
+    const isVideo = req.file.mimetype.startsWith('video/');
+
+    const item = await GalleryItem.create({
+      title: req.body.title || 'Foto de miembro',
+      description: req.body.description || '',
+      category: req.body.category || 'social',
+      imageUrl: result.url,
+      thumbnailUrl: result.thumbnailUrl || result.url,
+      publicId: result.publicId,
+      mediaType: isVideo ? 'video' : 'image',
+      uploadedBy: req.user.id,
+      isPublic: true
+    });
+
+    res.status(201).json({
+      success: true,
+      data: item
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   getAllGalleryItems,
   getGalleryItemById,
   createGalleryItem,
+  createGalleryItemAsMember,
   updateGalleryItem,
   deleteGalleryItem,
   likeGalleryItem,

@@ -107,6 +107,11 @@ const memberSchema = new mongoose.Schema({
     shoeSize: {
       type: Number
     },
+    modalidad: {
+      type: String,
+      enum: ['playa', 'piso', 'playa y piso', ''],
+      default: ''
+    },
     schedule: [{
       type: String
     }]

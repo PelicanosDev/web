@@ -39,6 +39,7 @@ function Navbar() {
     { name: 'Inicio', path: '/' },
     { name: 'Nosotros', path: '/about' },
     { name: 'Sedes', path: '/venues' },
+    { name: 'Torneos', path: '/torneos' },
     { name: 'Galería', path: '/gallery' },
     { name: 'Contacto', path: '/contact' },
   ];

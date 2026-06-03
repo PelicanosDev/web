@@ -72,7 +72,7 @@ const getMemberById = async (req, res, next) => {
 
 const createMember = async (req, res, next) => {
   try {
-    const { email, password, firstName, lastName } = req.body;
+    const { email, password, firstName, lastName, sportProfile } = req.body;
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -99,7 +99,8 @@ const createMember = async (req, res, next) => {
       membership: {
         plan: 'basic',
         monthlyFee: 150000
-      }
+      },
+      ...(sportProfile ? { sportProfile } : {})
     });
 
     const populatedMember = await Member.findById(member._id).populate('userId', 'email profile');

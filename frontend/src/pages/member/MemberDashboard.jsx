@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { TrendingUp, Award, Calendar, Users, Trophy, MapPin, CheckCircle, AlertCircle } from 'lucide-react';
+import { TrendingUp, Award, Calendar, Users, Trophy, MapPin, CheckCircle, AlertCircle, Music, Search, Plus, ExternalLink, Play, X } from 'lucide-react';
 import axios from '@/api/axios';
 
 function MemberDashboard() {
@@ -13,8 +13,19 @@ function MemberDashboard() {
   const [todayTrainingEvents, setTodayTrainingEvents] = useState([]);
   const [checkInStatus, setCheckInStatus] = useState({});
 
+  // Spotify
+  const [spotifyPlaylist, setSpotifyPlaylist] = useState(null);
+  const [spotifyConnected, setSpotifyConnected] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [searching, setSearching] = useState(false);
+  const [addingTrack, setAddingTrack] = useState(null);
+  const [addedTracks, setAddedTracks] = useState(new Set());
+  const [spotifyMsg, setSpotifyMsg] = useState(null);
+
   useEffect(() => {
     fetchMemberData();
+    fetchSpotifyPlaylist();
   }, []);
 
   const fetchMemberData = async () => {
@@ -39,6 +50,59 @@ function MemberDashboard() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchSpotifyPlaylist = async () => {
+    try {
+      const res = await axios.get('/spotify/playlist');
+      const data = res.data.data;
+      if (data?.connected) {
+        setSpotifyConnected(true);
+        setSpotifyPlaylist(data);
+        const uris = new Set((data.tracks || []).map(t => t.uri));
+        setAddedTracks(uris);
+      }
+    } catch {
+      // Spotify optional feature
+    }
+  };
+
+  const handleSearch = async (e) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) return;
+    setSearching(true);
+    setSearchResults([]);
+    try {
+      const res = await axios.get('/spotify/search', { params: { q: searchQuery } });
+      setSearchResults(res.data.data || []);
+    } catch (err) {
+      setSpotifyMsg({ type: 'error', text: err.response?.data?.message || 'Error al buscar' });
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const handleAddTrack = async (track) => {
+    setAddingTrack(track.uri);
+    setSpotifyMsg(null);
+    try {
+      await axios.post('/spotify/tracks', { uri: track.uri });
+      setAddedTracks(prev => new Set([...prev, track.uri]));
+      setSpotifyMsg({ type: 'success', text: `"${track.name}" agregada a la playlist` });
+      setTimeout(() => setSpotifyMsg(null), 4000);
+    } catch (err) {
+      const msg = err.response?.data?.message || 'Error al agregar';
+      setSpotifyMsg({ type: msg.includes('ya está') ? 'info' : 'error', text: msg });
+      setTimeout(() => setSpotifyMsg(null), 4000);
+    } finally {
+      setAddingTrack(null);
+    }
+  };
+
+  const formatDuration = (ms) => {
+    const m = Math.floor(ms / 60000);
+    const s = Math.floor((ms % 60000) / 1000).toString().padStart(2, '0');
+    return `${m}:${s}`;
   };
 
   const handleCheckIn = (eventId) => {
@@ -410,6 +474,155 @@ function MemberDashboard() {
           )}
         </div>
       </div>
+
+      {/* Spotify Playlist */}
+      {spotifyConnected && (
+        <div className="bg-slate-900 border-l-4 border-green-500">
+          {/* Header */}
+          <div className="p-6 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center gap-4">
+            <div className="flex items-center gap-3 flex-1">
+              <div className="w-10 h-10 bg-green-500 flex items-center justify-center flex-shrink-0">
+                <Music className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-widest text-green-400 mb-0.5">Playlist del Club</p>
+                <h2 className="font-display font-black uppercase text-white text-xl leading-none">
+                  {spotifyPlaylist?.playlistName || 'Pelícanos Vóley Club'}
+                </h2>
+                <p className="text-slate-400 text-xs mt-1">{spotifyPlaylist?.tracks?.length || 0} canciones · Agrega las tuyas</p>
+              </div>
+            </div>
+            {spotifyPlaylist?.playlistUrl && (
+              <a
+                href={spotifyPlaylist.playlistUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 border-2 border-green-500 text-green-400 font-bold uppercase tracking-wide px-4 py-2 text-xs hover:bg-green-500 hover:text-white transition-colors flex-shrink-0"
+              >
+                <ExternalLink className="w-3 h-3" />
+                Abrir en Spotify
+              </a>
+            )}
+          </div>
+
+          {/* Search */}
+          <div className="p-6 border-b border-slate-800">
+            <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">Buscar y agregar canciones</p>
+            <form onSubmit={handleSearch} className="flex gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  placeholder="Nombre de canción o artista..."
+                  className="w-full pl-9 pr-4 py-2.5 bg-slate-800 border border-slate-700 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-green-500"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={searching || !searchQuery.trim()}
+                className="inline-flex items-center gap-2 bg-green-500 text-white font-bold uppercase tracking-wide px-4 py-2.5 text-xs hover:bg-green-600 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                {searching ? (
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <Search className="w-4 h-4" />
+                )}
+                Buscar
+              </button>
+            </form>
+
+            {/* Feedback message */}
+            {spotifyMsg && (
+              <div className={`mt-3 px-3 py-2 text-xs font-bold uppercase tracking-widest flex items-center justify-between ${
+                spotifyMsg.type === 'success' ? 'bg-green-900 text-green-300' :
+                spotifyMsg.type === 'info' ? 'bg-sky-900 text-sky-300' :
+                'bg-red-900 text-red-300'
+              }`}>
+                <span>{spotifyMsg.text}</span>
+                <button onClick={() => setSpotifyMsg(null)} className="cursor-pointer">
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            )}
+
+            {/* Search Results */}
+            {searchResults.length > 0 && (
+              <ul className="mt-3 space-y-1 max-h-72 overflow-y-auto">
+                {searchResults.map(track => {
+                  const alreadyAdded = addedTracks.has(track.uri);
+                  return (
+                    <li
+                      key={track.id}
+                      className="flex items-center gap-3 p-2.5 bg-slate-800 hover:bg-slate-700 transition-colors"
+                    >
+                      {track.imageUrl ? (
+                        <img src={track.imageUrl} alt={track.album} className="w-9 h-9 object-cover flex-shrink-0" />
+                      ) : (
+                        <div className="w-9 h-9 bg-slate-600 flex items-center justify-center flex-shrink-0">
+                          <Play className="w-3 h-3 text-slate-400" />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-white text-sm font-bold truncate">{track.name}</p>
+                        <p className="text-slate-400 text-xs truncate">{track.artist} · {formatDuration(track.durationMs)}</p>
+                      </div>
+                      <button
+                        onClick={() => handleAddTrack(track)}
+                        disabled={alreadyAdded || addingTrack === track.uri}
+                        className={`inline-flex items-center gap-1 px-3 py-1.5 text-xs font-bold uppercase tracking-wide transition-colors cursor-pointer flex-shrink-0 ${
+                          alreadyAdded
+                            ? 'bg-slate-600 text-slate-400 cursor-default'
+                            : 'bg-green-500 text-white hover:bg-green-600'
+                        } disabled:opacity-60`}
+                      >
+                        {addingTrack === track.uri ? (
+                          <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        ) : alreadyAdded ? (
+                          <CheckCircle className="w-3 h-3" />
+                        ) : (
+                          <Plus className="w-3 h-3" />
+                        )}
+                        {alreadyAdded ? 'En playlist' : 'Agregar'}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+
+          {/* Current playlist tracks (first 8) */}
+          {spotifyPlaylist?.tracks?.length > 0 && (
+            <div className="p-6">
+              <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-3">Canciones en la playlist</p>
+              <ul className="space-y-1">
+                {spotifyPlaylist.tracks.slice(0, 8).map((track, i) => (
+                  <li key={track.uri} className="flex items-center gap-3 py-2">
+                    <span className="w-4 text-right text-xs text-slate-600 font-bold flex-shrink-0">{i + 1}</span>
+                    {track.imageUrl ? (
+                      <img src={track.imageUrl} alt={track.album} className="w-8 h-8 object-cover flex-shrink-0" />
+                    ) : (
+                      <div className="w-8 h-8 bg-slate-700 flex-shrink-0" />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white text-sm font-bold truncate">{track.name}</p>
+                      <p className="text-slate-500 text-xs truncate">{track.artist}</p>
+                    </div>
+                    <span className="text-xs text-slate-600 flex-shrink-0">{formatDuration(track.durationMs)}</span>
+                  </li>
+                ))}
+              </ul>
+              {spotifyPlaylist.tracks.length > 8 && (
+                <p className="text-xs text-slate-500 font-bold uppercase tracking-widest mt-3 text-center">
+                  +{spotifyPlaylist.tracks.length - 8} canciones más en Spotify
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

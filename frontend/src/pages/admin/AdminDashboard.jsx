@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Users, TrendingUp, DollarSign, Activity, Calendar } from 'lucide-react';
+import { Users, TrendingUp, DollarSign, Activity, Calendar, Cake, Gift } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import axios from '@/api/axios';
 
@@ -9,22 +9,25 @@ function AdminDashboard() {
   const [growthData, setGrowthData] = useState([]);
   const [recentMembers, setRecentMembers] = useState([]);
   const [upcomingEvents, setUpcomingEvents] = useState([]);
+  const [birthdays, setBirthdays] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => { fetchDashboardData(); }, []);
 
   const fetchDashboardData = async () => {
     try {
-      const [statsRes, growthRes, membersRes, eventsRes] = await Promise.all([
+      const [statsRes, growthRes, membersRes, eventsRes, birthdaysRes] = await Promise.all([
         axios.get('/admin/dashboard/stats'),
         axios.get('/admin/dashboard/growth'),
         axios.get('/admin/dashboard/recent'),
         axios.get('/admin/dashboard/events'),
+        axios.get('/admin/dashboard/birthdays'),
       ]);
       setStats(statsRes.data.data);
       setGrowthData(growthRes.data.data);
       setRecentMembers(membersRes.data.data);
       setUpcomingEvents(eventsRes.data.data);
+      setBirthdays(birthdaysRes.data.data);
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
     } finally {
@@ -38,6 +41,12 @@ function AdminDashboard() {
     { title: 'Ingresos Mensuales', value: `$${(stats.monthlyRevenue / 1000).toFixed(0)}K`, change: '+8%', icon: DollarSign, dark: true },
     { title: 'Tasa de Crecimiento', value: stats.memberGrowth, change: '+12%', icon: TrendingUp, dark: false },
   ];
+
+  const getBirthdayLabel = (daysUntil) => {
+    if (daysUntil === 0) return { label: '¡Hoy!', cls: 'bg-primary-500 text-white' };
+    if (daysUntil === 1) return { label: 'Mañana', cls: 'bg-amber-100 text-amber-700' };
+    return { label: `En ${daysUntil} días`, cls: 'bg-slate-100 text-slate-600' };
+  };
 
   if (loading) {
     return (
@@ -152,70 +161,118 @@ function AdminDashboard() {
         </div>
       </div>
 
-      {/* Recent Members table */}
-      <div className="bg-white border border-slate-100 shadow-sm p-6">
-        <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">Actividad</p>
-        <h2 className="font-display font-black uppercase text-slate-900 text-xl mb-6">
-          Últimas Inscripciones
-        </h2>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[560px]">
-            <thead>
-              <tr className="border-b-2 border-slate-100">
-                <th className="text-left py-3 px-4 text-xs font-bold uppercase tracking-widest text-slate-400">Miembro</th>
-                <th className="text-left py-3 px-4 text-xs font-bold uppercase tracking-widest text-slate-400">Rol</th>
-                <th className="text-left py-3 px-4 text-xs font-bold uppercase tracking-widest text-slate-400">Estado</th>
-                <th className="text-left py-3 px-4 text-xs font-bold uppercase tracking-widest text-slate-400">Acción</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recentMembers.length > 0 ? (
-                recentMembers.map((member) => (
-                  <tr key={member.id} className="border-b border-slate-50 hover:bg-slate-50">
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 bg-primary-500 flex items-center justify-center flex-shrink-0">
-                          <span className="font-display font-bold text-white text-sm">
-                            {member.name.split(' ').map(n => n[0]).join('')}
-                          </span>
+      {/* Birthdays + Recent Members */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Próximos Cumpleaños */}
+        <div className="bg-white border border-slate-100 shadow-sm p-6">
+          <div className="flex items-center gap-2 mb-1">
+            <Cake className="w-4 h-4 text-primary-500" />
+            <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Comunidad</p>
+          </div>
+          <h2 className="font-display font-black uppercase text-slate-900 text-xl mb-5">
+            Próximos Cumpleaños
+          </h2>
+          <div className="space-y-3">
+            {birthdays.length > 0 ? (
+              birthdays.map((b) => {
+                const { label, cls } = getBirthdayLabel(b.daysUntil);
+                return (
+                  <div key={b.memberId} className="flex items-center gap-3">
+                    <div className="w-9 h-9 bg-primary-100 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                      {b.avatar ? (
+                        <img src={b.avatar} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-xs font-bold text-primary-500">
+                          {b.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-slate-900 text-sm truncate">{b.name}</p>
+                      <p className="text-xs text-slate-400">
+                        {new Date(b.dateOfBirth).toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}
+                      </p>
+                    </div>
+                    <span className={`px-2 py-1 text-xs font-bold uppercase tracking-widest whitespace-nowrap ${cls}`}>
+                      {label}
+                    </span>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="text-center py-6">
+                <Gift className="w-10 h-10 text-slate-200 mx-auto mb-2" />
+                <p className="text-slate-400 text-sm">Sin cumpleaños próximos</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Recent Members table */}
+        <div className="lg:col-span-2 bg-white border border-slate-100 shadow-sm p-6">
+          <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">Actividad</p>
+          <h2 className="font-display font-black uppercase text-slate-900 text-xl mb-6">
+            Últimas Inscripciones
+          </h2>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[400px]">
+              <thead>
+                <tr className="border-b-2 border-slate-100">
+                  <th className="text-left py-3 px-4 text-xs font-bold uppercase tracking-widest text-slate-400">Miembro</th>
+                  <th className="text-left py-3 px-4 text-xs font-bold uppercase tracking-widest text-slate-400">Rol</th>
+                  <th className="text-left py-3 px-4 text-xs font-bold uppercase tracking-widest text-slate-400">Estado</th>
+                  <th className="text-left py-3 px-4 text-xs font-bold uppercase tracking-widest text-slate-400">Acción</th>
+                </tr>
+              </thead>
+              <tbody>
+                {recentMembers.length > 0 ? (
+                  recentMembers.map((member) => (
+                    <tr key={member.id} className="border-b border-slate-50 hover:bg-slate-50">
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 bg-primary-500 flex items-center justify-center flex-shrink-0">
+                            <span className="font-display font-bold text-white text-sm">
+                              {member.name.split(' ').map(n => n[0]).join('')}
+                            </span>
+                          </div>
+                          <div>
+                            <p className="font-bold text-slate-900 text-sm">{member.name}</p>
+                            <p className="text-xs text-slate-400">{member.email}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-bold text-slate-900 text-sm">{member.name}</p>
-                          <p className="text-xs text-slate-400">{member.email}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className="text-sm text-slate-600 font-medium capitalize">{member.role}</span>
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className={`px-2 py-1 text-xs font-bold uppercase tracking-widest ${
-                        member.status === 'active'
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-amber-100 text-amber-800'
-                      }`}>
-                        {member.status === 'active' ? 'Activo' : 'Inactivo'}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4">
-                      <Link
-                        to={`/admin/members/${member.id}`}
-                        className="text-primary-500 hover:text-primary-700 text-sm font-bold uppercase tracking-wide transition-colors"
-                      >
-                        Ver
-                      </Link>
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className="text-sm text-slate-600 font-medium capitalize">{member.role}</span>
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className={`px-2 py-1 text-xs font-bold uppercase tracking-widest ${
+                          member.status === 'active'
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-amber-100 text-amber-800'
+                        }`}>
+                          {member.status === 'active' ? 'Activo' : 'Inactivo'}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4">
+                        <Link
+                          to={`/admin/members/${member.id}`}
+                          className="text-primary-500 hover:text-primary-700 text-sm font-bold uppercase tracking-wide transition-colors"
+                        >
+                          Ver
+                        </Link>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="4" className="py-10 text-center text-slate-400 text-sm">
+                      Sin inscripciones recientes
                     </td>
                   </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="4" className="py-10 text-center text-slate-400 text-sm">
-                    Sin inscripciones recientes
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>

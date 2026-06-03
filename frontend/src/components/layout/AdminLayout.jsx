@@ -9,6 +9,7 @@ import {
   Award,
   Dumbbell,
   FolderOpen,
+  Music,
   LogOut,
   Menu,
   X,
@@ -24,8 +25,10 @@ const menuItems = [
   { name: 'Galería', path: '/admin/gallery', icon: Image },
   { name: 'Eventos', path: '/admin/events', icon: Calendar },
   { name: 'Torneos', path: '/admin/tournaments', icon: Trophy },
+  { name: 'Torneos del Club', path: '/admin/club-tournaments', icon: Trophy },
   { name: 'Insignias', path: '/admin/badges', icon: Award },
   { name: 'Recursos', path: '/admin/resources', icon: FolderOpen },
+  { name: 'Spotify', path: '/admin/spotify', icon: Music },
 ];
 
 function AdminLayout() {

@@ -6,6 +6,7 @@ const AuthContext = createContext(null);
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [needsTreatment, setNeedsTreatment] = useState(false);
 
   useEffect(() => {
     checkAuth();
@@ -15,32 +16,34 @@ export const AuthProvider = ({ children }) => {
     try {
       const token = localStorage.getItem('token');
       const storedUser = localStorage.getItem('user');
-      
+
       if (token && storedUser) {
-        // Cargar usuario inmediatamente del localStorage para evitar parpadeo
-        setUser(JSON.parse(storedUser));
+        const parsed = JSON.parse(storedUser);
+        setUser(parsed);
+        setNeedsTreatment(parsed.tratamiento === false);
         setLoading(false);
-        
-        // Verificar con el servidor en segundo plano
+
         try {
           const response = await axios.get('/auth/me');
-          setUser(response.data.data);
-          localStorage.setItem('user', JSON.stringify(response.data.data));
+          const freshUser = response.data.data;
+          setUser(freshUser);
+          setNeedsTreatment(freshUser.tratamiento === false);
+          localStorage.setItem('user', JSON.stringify(freshUser));
         } catch (error) {
-          // Si el token expiró, el interceptor intentará refrescarlo
           if (error.response?.status === 401) {
             localStorage.removeItem('token');
             localStorage.removeItem('refreshToken');
             localStorage.removeItem('user');
             setUser(null);
+            setNeedsTreatment(false);
           }
         }
       } else {
-        // No hay token o usuario, limpiar todo
         localStorage.removeItem('token');
         localStorage.removeItem('refreshToken');
         localStorage.removeItem('user');
         setUser(null);
+        setNeedsTreatment(false);
         setLoading(false);
       }
     } catch (error) {
@@ -49,6 +52,7 @@ export const AuthProvider = ({ children }) => {
       localStorage.removeItem('refreshToken');
       localStorage.removeItem('user');
       setUser(null);
+      setNeedsTreatment(false);
       setLoading(false);
     }
   };
@@ -56,15 +60,14 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     const response = await axios.post('/auth/login', { email, password });
     const { token, refreshToken, user } = response.data;
-    
-    // Guardar en localStorage
+
     localStorage.setItem('token', token);
     localStorage.setItem('refreshToken', refreshToken);
     localStorage.setItem('user', JSON.stringify(user));
-    
-    // Actualizar estado
+
     setUser(user);
-    
+    setNeedsTreatment(user.tratamiento === false);
+
     return user;
   };
 
@@ -78,6 +81,19 @@ export const AuthProvider = ({ children }) => {
       localStorage.removeItem('refreshToken');
       localStorage.removeItem('user');
       setUser(null);
+      setNeedsTreatment(false);
+    }
+  };
+
+  const acceptTreatment = async () => {
+    try {
+      const response = await axios.put('/auth/accept-treatment');
+      const updatedUser = response.data.data;
+      setUser(updatedUser);
+      setNeedsTreatment(false);
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+    } catch (error) {
+      console.error('Error accepting treatment:', error);
     }
   };
 
@@ -86,6 +102,8 @@ export const AuthProvider = ({ children }) => {
     loading,
     login,
     logout,
+    needsTreatment,
+    acceptTreatment,
     isAuthenticated: !!user,
     isAdmin: user?.role === 'admin',
     isMember: user?.role === 'member',

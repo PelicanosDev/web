@@ -5,7 +5,8 @@ const {
   getDashboardStats,
   getMembershipGrowth,
   getRecentRegistrations,
-  getUpcomingEvents
+  getUpcomingEvents,
+  getNextBirthdays
 } = require('../controllers/dashboardController');
 
 router.use(authenticate);
@@ -15,5 +16,6 @@ router.get('/stats', getDashboardStats);
 router.get('/growth', getMembershipGrowth);
 router.get('/recent', getRecentRegistrations);
 router.get('/events', getUpcomingEvents);
+router.get('/birthdays', getNextBirthdays);
 
 module.exports = router;

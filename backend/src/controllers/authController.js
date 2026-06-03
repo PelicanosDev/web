@@ -232,6 +232,23 @@ const uploadAvatar = async (req, res, next) => {
   }
 };
 
+const acceptTreatment = async (req, res, next) => {
+  try {
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      { tratamiento: true },
+      { new: true }
+    );
+    res.status(200).json({
+      success: true,
+      message: 'Tratamiento de datos aceptado',
+      data: user
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   register,
   login,
@@ -239,5 +256,6 @@ module.exports = {
   refreshToken,
   getMe,
   changePassword,
-  uploadAvatar
+  uploadAvatar,
+  acceptTreatment
 };

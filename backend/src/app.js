@@ -19,6 +19,8 @@ const exerciseRoutes = require('./routes/exerciseRoutes');
 const publicMemberRoutes = require('./routes/publicMemberRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const resourceRoutes = require('./routes/resourceRoutes');
+const externalTournamentRoutes = require('./routes/externalTournamentRoutes');
+const spotifyRoutes = require('./routes/spotifyRoutes');
 
 const app = express();
 
@@ -85,6 +87,8 @@ app.use('/api/admin/exercises', exerciseRoutes);
 app.use('/api/member/notifications', notificationRoutes);
 app.use('/api/resources', resourceRoutes);
 app.use('/api/admin/resources', resourceRoutes);
+app.use('/api/club-tournaments', externalTournamentRoutes);
+app.use('/api/spotify', spotifyRoutes);
 
 app.use((req, res) => {
   res.status(404).json({

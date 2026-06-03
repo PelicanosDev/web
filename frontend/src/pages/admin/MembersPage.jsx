@@ -18,7 +18,8 @@ function MembersPage() {
     email: '',
     password: '',
     firstName: '',
-    lastName: ''
+    lastName: '',
+    modalidad: ''
   });
   const [submitting, setSubmitting] = useState(false);
   const [showBulkRecordsModal, setShowBulkRecordsModal] = useState(false);
@@ -270,6 +271,7 @@ function MembersPage() {
                 <th className="text-left py-3 px-4 text-xs font-bold uppercase tracking-widest text-slate-400">Miembro</th>
                 <th className="text-left py-3 px-4 text-xs font-bold uppercase tracking-widest text-slate-400">N° Socio</th>
                 <th className="text-left py-3 px-4 text-xs font-bold uppercase tracking-widest text-slate-400">Posición</th>
+                <th className="text-left py-3 px-4 text-xs font-bold uppercase tracking-widest text-slate-400">Modalidad</th>
                 <th className="text-left py-3 px-4 text-xs font-bold uppercase tracking-widest text-slate-400">Nivel</th>
                 <th className="text-left py-3 px-4 text-xs font-bold uppercase tracking-widest text-slate-400">Estado</th>
                 <th className="text-left py-3 px-4 text-xs font-bold uppercase tracking-widest text-slate-400">Acciones</th>
@@ -308,6 +310,15 @@ function MembersPage() {
                     <span className="text-sm text-slate-600 capitalize">
                       {member.sportProfile?.position || 'N/A'}
                     </span>
+                  </td>
+                  <td className="py-3 px-4">
+                    {member.sportProfile?.modalidad ? (
+                      <span className="px-2 py-1 text-xs font-bold uppercase tracking-widest bg-sky-100 text-sky-700">
+                        {member.sportProfile.modalidad}
+                      </span>
+                    ) : (
+                      <span className="text-xs text-slate-400">—</span>
+                    )}
                   </td>
                   <td className="py-3 px-4">
                     <div className="flex items-center gap-1.5">
@@ -524,6 +535,22 @@ function MembersPage() {
                     minLength={8}
                     placeholder="Mínimo 8 caracteres"
                   />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">
+                    Modalidad
+                  </label>
+                  <select
+                    value={formData.modalidad}
+                    onChange={(e) => setFormData({ ...formData, modalidad: e.target.value })}
+                    className="w-full px-4 py-3 border-2 border-slate-200 focus:border-primary-500 outline-none transition-colors text-slate-900 bg-white"
+                  >
+                    <option value="">Sin especificar</option>
+                    <option value="playa">Playa</option>
+                    <option value="piso">Piso</option>
+                    <option value="playa y piso">Playa y Piso</option>
+                  </select>
                 </div>
 
                 <div className="bg-sky-50 border-l-4 border-sky-400 px-4 py-3">
@@ -877,14 +904,21 @@ function MembersPage() {
     setSubmitting(true);
 
     try {
-      await axios.post('/admin/members', formData);
+      const payload = { ...formData };
+      // modalidad goes into sportProfile
+      if (payload.modalidad) {
+        payload.sportProfile = { modalidad: payload.modalidad };
+      }
+      delete payload.modalidad;
+      await axios.post('/admin/members', payload);
       alert('Miembro creado exitosamente');
       setShowAddModal(false);
       setFormData({
         email: '',
         password: '',
         firstName: '',
-        lastName: ''
+        lastName: '',
+        modalidad: ''
       });
       fetchMembers();
     } catch (error) {
