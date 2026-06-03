@@ -19,7 +19,7 @@ router.post('/tracks', authenticate, addTrack);
 
 // Admin only
 router.get('/auth-url', authenticate, authorize('admin', 'coach'), getAuthUrl);
-router.post('/callback', authenticate, authorize('admin', 'coach'), handleCallback);
+router.post('/callback', authenticate, handleCallback);
 router.get('/status', authenticate, authorize('admin', 'coach'), getStatus);
 router.delete('/disconnect', authenticate, authorize('admin', 'coach'), disconnect);
 router.delete('/tracks', authenticate, authorize('admin', 'coach'), removeTrack);
