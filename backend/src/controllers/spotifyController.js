@@ -250,19 +250,20 @@ const addTrack = async (req, res, next) => {
 
     const token = await getValidToken();
 
-    // Check if already in playlist
-    const { data: current } = await axios.get(
-      `https://api.spotify.com/v1/playlists/${config.playlistId}/tracks?fields=items(track(uri))&limit=100`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    const exists = (current.items || []).some(i => i.track?.uri === uri);
-    if (exists) return res.status(409).json({ success: false, message: 'La canción ya está en la playlist' });
-
-    await axios.post(
-      `https://api.spotify.com/v1/playlists/${config.playlistId}/tracks`,
-      { uris: [uri] },
-      { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } }
-    );
+    try {
+      await axios.post(
+        `https://api.spotify.com/v1/playlists/${config.playlistId}/tracks`,
+        { uris: [uri] },
+        { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } }
+      );
+    } catch (spotifyErr) {
+      const status = spotifyErr.response?.status;
+      const spotifyMsg = spotifyErr.response?.data?.error?.message || spotifyErr.message;
+      if (status === 403) {
+        return res.status(403).json({ success: false, message: `Sin permiso de Spotify para modificar la playlist: ${spotifyMsg}` });
+      }
+      return res.status(502).json({ success: false, message: `Error de Spotify: ${spotifyMsg}` });
+    }
 
     res.json({ success: true, message: 'Canción agregada a la playlist' });
   } catch (error) {
