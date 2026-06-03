@@ -110,8 +110,11 @@ const handleCallback = async (req, res, next) => {
 
     res.json({ success: true, message: 'Spotify conectado exitosamente', data: { playlistId, playlistName, playlistUrl } });
   } catch (error) {
-    console.error('Spotify callback error:', error.response?.data || error.message);
-    next(error);
+    const spotifyError = error.response?.data;
+    console.error('Spotify callback error:', spotifyError || error.message);
+    // Surface the actual Spotify error to the client for debugging
+    const message = spotifyError?.error_description || spotifyError?.error || error.message;
+    return res.status(500).json({ success: false, message: `Spotify error: ${message}` });
   }
 };
 
