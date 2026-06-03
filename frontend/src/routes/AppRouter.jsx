@@ -79,7 +79,7 @@ function AppRouter() {
         </Route>
 
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/spotify/callback" element={<SpotifyCallback />} />
+        <Route path="/spotify-callback" element={<SpotifyCallback />} />
 
         <Route
           path="/admin"
