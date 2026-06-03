@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import axios from '@/api/axios';
+
+const API_URL = import.meta.env.VITE_API_URL;
 
 function SpotifyCallback() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const [status, setStatus] = useState('loading'); // loading | success | error
+  const [status, setStatus] = useState('loading');
   const [message, setMessage] = useState('');
   const called = useRef(false);
 
@@ -28,8 +29,21 @@ function SpotifyCallback() {
       return;
     }
 
-    axios
-      .post('/spotify/callback', { code })
+    // Use fetch directly (no interceptors) to avoid retry with the same one-time code
+    const token = localStorage.getItem('token');
+    fetch(`${API_URL}/spotify/callback`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify({ code }),
+    })
+      .then(async (res) => {
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || `Error ${res.status}`);
+        return data;
+      })
       .then(() => {
         setStatus('success');
         setMessage('¡Spotify conectado exitosamente!');
@@ -37,7 +51,7 @@ function SpotifyCallback() {
       })
       .catch((err) => {
         setStatus('error');
-        setMessage(err.response?.data?.message || 'Error al conectar Spotify.');
+        setMessage(err.message || 'Error al conectar Spotify.');
       });
   }, []);
 
