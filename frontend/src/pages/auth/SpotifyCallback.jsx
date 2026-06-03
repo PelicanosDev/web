@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
 const API_URL = import.meta.env.VITE_API_URL;
@@ -8,28 +8,23 @@ function SpotifyCallback() {
   const navigate = useNavigate();
   const [status, setStatus] = useState('loading');
   const [message, setMessage] = useState('');
-  const called = useRef(false);
 
   useEffect(() => {
-    if (called.current) return;
-    called.current = true;
-
+    // Prevent double-submission across component remounts using sessionStorage
     const code = searchParams.get('code');
-    const error = searchParams.get('error');
-
-    if (error) {
-      setStatus('error');
-      setMessage('Autenticación cancelada o denegada por Spotify.');
-      return;
-    }
-
     if (!code) {
       setStatus('error');
-      setMessage('No se recibió el código de autorización.');
+      setMessage(searchParams.get('error') ? 'Autenticación cancelada por Spotify.' : 'No se recibió el código.');
       return;
     }
 
-    // Use fetch directly (no interceptors) to avoid retry with the same one-time code
+    const sentKey = `spotify_code_sent_${code.slice(0, 16)}`;
+    if (sessionStorage.getItem(sentKey)) {
+      // Already submitted — just wait for the result
+      return;
+    }
+    sessionStorage.setItem(sentKey, '1');
+
     const token = localStorage.getItem('token');
     fetch(`${API_URL}/spotify/callback`, {
       method: 'POST',
@@ -45,11 +40,13 @@ function SpotifyCallback() {
         return data;
       })
       .then(() => {
+        sessionStorage.removeItem(sentKey);
         setStatus('success');
         setMessage('¡Spotify conectado exitosamente!');
         setTimeout(() => navigate('/admin/spotify'), 1500);
       })
       .catch((err) => {
+        sessionStorage.removeItem(sentKey);
         setStatus('error');
         setMessage(err.message || 'Error al conectar Spotify.');
       });
